@@ -18,4 +18,55 @@ Currently no software exists that combines these tasks. Companies provide DICOM 
 ## Example datasets
 https://cloudstor.aarnet.edu.au/plus/index.php/s/d82ybF0SugqBsJp
 
-## Example pipeline on the cloud instance
+```bash
+  curl -u "d82ybF0SugqBsJp:<password>" "https://cloudstor.aarnet.edu.au/plus/public.php/webdav" -o example.zip
+
+  unzip example.zip
+```
+
+
+## Steps that needed to performed on the client side for "Atlas" pipeline
+```bash
+cd exampleData/7T_mp2rage_Atlasing_sorted/
+
+dcm2mnc GR_IR_M_10_mp2rage-wip900_0.75iso_7T_UNI-DEN/* .
+
+
+cd test_sb_20150915_105259/
+deface_minipipe.pl test_sb_20150915_105259_10_mri.mnc brain_defaced.mnc
+
+mincanon brain_defaced.mnc
+
+```
+## Steps that needed to performed on the cloud side for "Atlas" pipeline
+```bash
+mnc2nii brain_defaced.mnc brain_defaced.nii
+recon-all -i brain_defaced.nii -subjid your_subject_name
+recon-all  -all -subjid your_subject_name
+```
+
+## Steps that needed to performed on the client side for "QSM" pipeline one echo
+```bash
+cd exampleData/3T_multi-echo_QSM_sorted/
+
+dcm2mnc GR_M_12_QSM_p2_1mmIso_TE20/* .
+dcm2mnc GR_P_13_QSM_p2_1mmIso_TE20/* .
+
+cd dev_siemens_sb_20170705_134507/
+deface_minipipe.pl dev_siemens_sb_20170705_134507_12d1_mri.mnc mag_defaced.mnc
+
+deface_minipipe.pl dev_siemens_sb_20170705_134507_13d1_mri.mnc phs_defaced.mnc
+
+mincanon mag_defaced.mnc
+mincanon phs_defaced.mnc
+```
+
+## Steps for "QSM" pipeline on the cloud instance
+```bash
+mnc2nii mag_defaced.mnc mag_defaced.nii
+mnc2nii phs_defaced.mnc phs_defaced.nii
+
+bet2 mag_defaced.nii magnitude_bet2
+
+tgv_qsm -p phs_defaced.nii -m magnitude_bet2_mask.nii.gz -f 2.89 -t 0.02 -s -o qsm
+```
