@@ -16,5 +16,6 @@ A GUI data ingests DICOM data, anonymizes the data and uploads it to a cloud ins
 Currently no software exists that combines these tasks. Companies provide DICOM uploaders to their clouds (https://www.dicomlibrary.com/, https://boxdicom.com/, https://orca.de.com/orca/) but the security model does not involve proper anonymization. There are open-source projects that upload DICOM images (https://github.com/conorbranagan/dicom-uploader, https://github.com/inodb/dicom-flask-uploader), but de-facing anonymiztion has not been implemented yet. There is a project that provides a de-facing algorithm without cutting off the face (https://github.com/BIC-MNI/EZminc/blob/ITK4/scripts/deface_minipipe.pl) that would work for this kind of data. This tool replaces the patient face with an average face, but has a large amount of software dependencies, which could make an integration challenging.
 
 ## Example datasets
+https://cloudstor.aarnet.edu.au/plus/index.php/s/d82ybF0SugqBsJp
 
-## Example pipeline
+## Example pipeline on the cloud instance
