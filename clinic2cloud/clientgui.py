@@ -485,9 +485,12 @@ class ClinicApp(wx.Frame):
         self.Center(wx.BOTH)
         self.Show()
 
-
-# ----------------------------------------------------------------------
-if __name__ == "__main__":
+def main():
     app = wx.App()
     frame = ClinicApp()
     app.MainLoop()
+
+# ----------------------------------------------------------------------
+if __name__ == "__main__":
+    main()
+

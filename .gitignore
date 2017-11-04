@@ -5,3 +5,7 @@
 *.swo
 .idea/
 *.pyc
+
+dist/*
+clinic2cloud.egg-info/*
+
