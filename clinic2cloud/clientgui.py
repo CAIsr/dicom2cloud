@@ -360,8 +360,17 @@ class FileSelectPanel(FilesPanel):
         for s0 in global_series.items():
             s = s0[1]['dicomdata']
             numfiles= len(s0[1]['files'])
+
+            # Columns:      Toggle      Select
+            #               Text        PatientID
+            #               Text        Sequence
+            #               Text        Protocol
+            #               Text        Image Type
+            #               Text        Num Files
+            #               Text        Series ID
             self.m_dataViewListCtrl1.AppendItem(
-                [True, s['patientid'], s['sequence'], s['protocol'], s['imagetype'], numfiles,s['series_num']])
+                [True, s['patientid'], s['sequence'], s['protocol'],
+                s['imagetype'], str(numfiles), s['series_num']])
 
         # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
