@@ -76,7 +76,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['dicom', 'numpy', 'pandas',
-            'pydicom', 'docker'],
+            'pydicom', 'docker', 'wxPython'],
     # dicom==0.9.9.post1   numpy==1.13.1   pandas==0.20.3   pydicom==0.9.9
 
 
