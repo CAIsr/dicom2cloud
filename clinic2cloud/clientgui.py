@@ -415,7 +415,8 @@ class AppMain(wx.Listbook):
             self.AddPage(page, label)
             imID += 1
 
-        self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        # TODO: This line doesn't work
+        #self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
 
         self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
