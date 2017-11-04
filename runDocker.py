@@ -34,7 +34,7 @@ import os
 
 client = docker.from_env()
 
-CONTAINER_NAME = "ilent2/clinic2cloud:0.2"
+CONTAINER_NAME = "ilent2/clinic2cloud"
 
 INPUT_TARGET = "/home/neuro/"
 OUTPUT_FILENAME = "output.mnc"
