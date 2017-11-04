@@ -1,17 +1,79 @@
 import wx
 from os import listdir, R_OK, path, mkdir, access, walk
-from os.path import isdir, join
+from os.path import isdir, join, commonprefix, dirname
 import argparse
 import sys
 import re
+from hashlib import sha256
 from glob import iglob
 import shutil
 import time
 import dicom
+import threading
+from multiprocessing import freeze_support
 from dicom.filereader import InvalidDicomError, read_file
 from noname import *
+from dummydocker import startDocker,checkIfDone
 series ={}
+outputdir="D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
 
+# Required for dist?
+freeze_support()
+# Define notification event for thread completion
+EVT_RESULT_ID = wx.NewId()
+
+
+def EVT_RESULT(win, func):
+    """Define Result Event."""
+    win.Connect(-1, -1, EVT_RESULT_ID, func)
+
+
+class ResultEvent(wx.PyEvent):
+    """Simple event to carry arbitrary result data."""
+
+    def __init__(self, data):
+        """Init Result Event."""
+        wx.PyEvent.__init__(self)
+        self.SetEventType(EVT_RESULT_ID)
+        self.data = data
+
+class DockerThread(threading.Thread):
+    """Multi Worker Thread Class."""
+
+    # ----------------------------------------------------------------------
+    def __init__(self, wxObject, targetdir, series,processname):
+        """Init Worker Thread Class."""
+        threading.Thread.__init__(self)
+        self.wxObject = wxObject
+        self.processname = processname
+        self.targetdir = targetdir
+        self.series = series
+
+    # ----------------------------------------------------------------------
+    def run(self):
+        i = 0
+        try:
+            #event.set()
+            #lock.acquire(True)
+            # Do work
+            (containername, timeout) = startDocker(self.targetdir)
+            ctr = 0
+            print "Started"
+            while(not checkIfDone(timeout)):
+                time.sleep(5)
+                wx.PostEvent(self.wxObject, ResultEvent((ctr, self.series, self.processname)))
+                ctr = 1
+
+            print "Finished DockerThread"
+        except Exception as e:
+            wx.PostEvent(self.wxObject, ResultEvent((-1, self.series, self.processname)))
+
+        finally:
+            wx.PostEvent(self.wxObject, ResultEvent((2, self.series, self.processname)))
+            #logger.info('Finished FilterThread')
+            # self.terminate()
+            #lock.release()
+            #event.clear()
 
 ########################################################################
 class HomePanel(WelcomePanel):
@@ -69,7 +131,7 @@ class ProcessRunPanel(ProcessPanel):
         processes = [p['caption'] for p in self.processes]
         #self.m_checkListProcess.AppendItems(processes)
         # Set up event handler for any worker thread results
-        #EVT_RESULT(self, self.progressfunc)
+        EVT_RESULT(self, self.progressfunc)
         # EVT_CANCEL(self, self.stopfunc)
         # Set timer handler
         self.start = {}
@@ -91,26 +153,26 @@ class ProcessRunPanel(ProcessPanel):
         :param col:
         :return:
         """
-        (count, row, i, total, process) = msg.data
+        (count, series, process) = msg.data
         print("\nProgress updated: ", time.ctime())
         print('count = ', count)
-        status = "%d of %d files " % (i, total)
+        row = 0 #TODO replace with actual line
+        status=''
         if count == 0:
-            self.m_dataViewListCtrlRunning.AppendItem([process, count, "Pending"])
-            self.start[process] = time.time()
+            self.m_dataViewListCtrlRunning.AppendItem([process, series, count, "Pending"])
+            self.start[series] = time.time()
         elif count < 0:
-            self.m_dataViewListCtrlRunning.SetValue("ERROR in " + status, row=row, col=2)
+            self.m_dataViewListCtrlRunning.SetValue("ERROR", row=row, col=3)
             self.m_btnRunProcess.Enable()
-        elif count < 100:
-            self.m_dataViewListCtrlRunning.SetValue(count, row=row, col=1)
-            self.m_dataViewListCtrlRunning.SetValue("Running " + status, row=row, col=2)
+        elif count == 1:
+            self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
         else:
-            if process in self.start:
-                endtime = time.time() - self.start[process]
-                status = "%s (%d secs)" % (status, endtime)
+            if series in self.start:
+                endtime = time.time() - self.start[series]
+                status = "(%d secs)" % endtime
             print(status)
-            self.m_dataViewListCtrlRunning.SetValue(count, row=row, col=1)
-            self.m_dataViewListCtrlRunning.SetValue("Done " + status, row=row, col=2)
+            self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
+            self.m_dataViewListCtrlRunning.SetValue("Done " + status, row=row, col=3)
             self.m_btnRunProcess.Enable()
 
     def getFilePanel(self):
@@ -149,37 +211,57 @@ class ProcessRunPanel(ProcessPanel):
         btn = event.GetEventObject()
         btn.Disable()
         # Get selected processes
-        selections = self.m_checkListProcess.GetCheckedStrings()
-        print("Processes selected: ", len(selections))
+        selection = self.m_checkListProcess.GetStringSelection()
+        print("Processes selected: ", selection)
+
         # Get data from other panels
         filepanel = self.getFilePanel()
         filenames = []
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
         print('All Files:', num_files)
-        if len(selections) > 0 and num_files > 0:
+
+        if selection != 'None' and num_files > 0:
             for i in range(0, num_files):
                 if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                    filenames.append(filepanel.m_dataViewListCtrl1.GetValue(i, 1))
-            print('Selected Files:', len(filenames))
-            row = 0
-            # For each process
-            for p in selections:
-                print("Running:", p)
-                i = [i for i in range(len(self.processes)) if p == self.processes[i]['caption']][
-                    0]
-                #self.RunProcess(self, filenames, i, outputdir, expt, row)
-                row = row + 1
-                print('Next process: row=', row)
+                    #for each series, create temp dir and copy files
+                    series = filepanel.m_dataViewListCtrl1.GetValue(i, 5)
+                    dest = self.copyseries(series)
 
-            print("Completed processes")
+                    #TODO: Call Docker with series (dest) - then poll
+                    t = DockerThread(self,  dest,series,selection)
+                    t.start()
+
+
         else:
-            if len(selections) <= 0:
+            if selection == 'None':
                 msg = "No processes selected"
             else:
                 msg = "No files selected - please go to Files Panel and add to list"
             self.Parent.Warn(msg)
             # Enable Run button
             self.m_btnRunProcess.Enable()
+
+    def copyseries(self, seriesnum):
+        if seriesnum in series:
+            subdir = self.generateuid(seriesnum)
+            dest = join(outputdir,subdir)
+            if not access(dest,R_OK):
+                mkdir(dest)
+            for f in series[seriesnum]['files']:
+                shutil.copy(f,dest)
+            return dest
+
+    def generateuid(self,seriesnum):
+        hashed = sha256(seriesnum).hexdigest()
+        return hashed
+
+    def checkhashed(self,seriesnum, hashed):
+        if hashed == sha256(seriesnum).hexdigest():
+            print("It Matches!")
+            return True
+        else:
+            print("It Does not Match")
+            return False
 
 ########################################################################
 class MyFileDropTarget(wx.FileDropTarget):

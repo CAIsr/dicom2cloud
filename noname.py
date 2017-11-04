@@ -472,7 +472,7 @@ class ConfigPanel ( wx.Panel ):
 class ProcessPanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
-		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( -1,-1 ), style = wx.TAB_TRAVERSAL )
+		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 508,919 ), style = wx.TAB_TRAVERSAL )
 		
 		bSizer19 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -535,6 +535,7 @@ class ProcessPanel ( wx.Panel ):
 		self.m_dataViewListCtrlRunning.SetMinSize( wx.Size( -1,400 ) )
 		
 		self.m_dataViewListColumnProcess = self.m_dataViewListCtrlRunning.AppendTextColumn( u"Process" )
+		self.m_dataViewListColumnSeries = self.m_dataViewListCtrlRunning.AppendTextColumn( u"Series" )
 		self.m_dataViewListColumnStatus = self.m_dataViewListCtrlRunning.AppendProgressColumn( u"Status" )
 		self.m_dataViewListColumnOutput = self.m_dataViewListCtrlRunning.AppendTextColumn( u"Output" )
 		bSizer21.Add( self.m_dataViewListCtrlRunning, 0, wx.ALL|wx.EXPAND, 5 )
@@ -549,7 +550,6 @@ class ProcessPanel ( wx.Panel ):
 		
 		self.SetSizer( bSizer19 )
 		self.Layout()
-		bSizer19.Fit( self )
 		
 		# Connect Events
 		self.m_checkListProcess.Bind( wx.EVT_RADIOBOX, self.OnShowDescription )

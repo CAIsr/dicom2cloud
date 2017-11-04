@@ -8284,7 +8284,7 @@
                 </object>
             </object>
         </object>
-        <object class="Panel" expanded="0">
+        <object class="Panel" expanded="1">
             <property name="aui_managed">0</property>
             <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
@@ -8300,7 +8300,7 @@
             <property name="minimum_size"></property>
             <property name="name">ProcessPanel</property>
             <property name="pos"></property>
-            <property name="size">-1,-1</property>
+            <property name="size">508,919</property>
             <property name="subclass"></property>
             <property name="tooltip"></property>
             <property name="window_extra_style"></property>
@@ -8336,7 +8336,7 @@
             <event name="OnSetFocus"></event>
             <event name="OnSize"></event>
             <event name="OnUpdateUI"></event>
-            <object class="wxBoxSizer" expanded="0">
+            <object class="wxBoxSizer" expanded="1">
                 <property name="minimum_size"></property>
                 <property name="name">bSizer19</property>
                 <property name="orient">wxVERTICAL</property>
@@ -8505,11 +8505,11 @@
                         <event name="OnUpdateUI"></event>
                     </object>
                 </object>
-                <object class="sizeritem" expanded="0">
+                <object class="sizeritem" expanded="1">
                     <property name="border">5</property>
                     <property name="flag">wxEXPAND</property>
                     <property name="proportion">1</property>
-                    <object class="wxBoxSizer" expanded="0">
+                    <object class="wxBoxSizer" expanded="1">
                         <property name="minimum_size"></property>
                         <property name="name">bSizer20</property>
                         <property name="orient">wxHORIZONTAL</property>
@@ -8970,20 +8970,20 @@
                         </object>
                     </object>
                 </object>
-                <object class="sizeritem" expanded="0">
+                <object class="sizeritem" expanded="1">
                     <property name="border">5</property>
                     <property name="flag">wxEXPAND</property>
                     <property name="proportion">1</property>
-                    <object class="wxBoxSizer" expanded="0">
+                    <object class="wxBoxSizer" expanded="1">
                         <property name="minimum_size"></property>
                         <property name="name">bSizer21</property>
                         <property name="orient">wxVERTICAL</property>
                         <property name="permission">none</property>
-                        <object class="sizeritem" expanded="0">
+                        <object class="sizeritem" expanded="1">
                             <property name="border">5</property>
                             <property name="flag">wxALL|wxEXPAND</property>
                             <property name="proportion">0</property>
-                            <object class="wxDataViewListCtrl" expanded="0">
+                            <object class="wxDataViewListCtrl" expanded="1">
                                 <property name="bg"></property>
                                 <property name="context_help"></property>
                                 <property name="context_menu">1</property>
@@ -9048,6 +9048,12 @@
                                 <object class="dataViewListColumn" expanded="0">
                                     <property name="label">Process</property>
                                     <property name="name">m_dataViewListColumnProcess</property>
+                                    <property name="permission">protected</property>
+                                    <property name="type">Text</property>
+                                </object>
+                                <object class="dataViewListColumn" expanded="1">
+                                    <property name="label">Series</property>
+                                    <property name="name">m_dataViewListColumnSeries</property>
                                     <property name="permission">protected</property>
                                     <property name="type">Text</property>
                                 </object>
@@ -10781,7 +10787,7 @@
                 </object>
             </object>
         </object>
-        <object class="Panel" expanded="1">
+        <object class="Panel" expanded="0">
             <property name="aui_managed">0</property>
             <property name="aui_manager_style">wxAUI_MGR_DEFAULT</property>
             <property name="bg"></property>
@@ -10833,7 +10839,7 @@
             <event name="OnSetFocus"></event>
             <event name="OnSize"></event>
             <event name="OnUpdateUI"></event>
-            <object class="wxBoxSizer" expanded="1">
+            <object class="wxBoxSizer" expanded="0">
                 <property name="minimum_size"></property>
                 <property name="name">bSizer5</property>
                 <property name="orient">wxVERTICAL</property>
@@ -11632,20 +11638,20 @@
                         </object>
                     </object>
                 </object>
-                <object class="sizeritem" expanded="1">
+                <object class="sizeritem" expanded="0">
                     <property name="border">5</property>
                     <property name="flag">wxEXPAND</property>
                     <property name="proportion">1</property>
-                    <object class="wxBoxSizer" expanded="1">
+                    <object class="wxBoxSizer" expanded="0">
                         <property name="minimum_size"></property>
                         <property name="name">bSizer18</property>
                         <property name="orient">wxVERTICAL</property>
                         <property name="permission">none</property>
-                        <object class="sizeritem" expanded="1">
+                        <object class="sizeritem" expanded="0">
                             <property name="border">5</property>
                             <property name="flag">wxALIGN_TOP|wxALL|wxEXPAND</property>
                             <property name="proportion">0</property>
-                            <object class="wxDataViewListCtrl" expanded="1">
+                            <object class="wxDataViewListCtrl" expanded="0">
                                 <property name="bg"></property>
                                 <property name="context_help"></property>
                                 <property name="context_menu">1</property>
@@ -11719,25 +11725,25 @@
                                     <property name="permission">protected</property>
                                     <property name="type">Text</property>
                                 </object>
-                                <object class="dataViewListColumn" expanded="1">
+                                <object class="dataViewListColumn" expanded="0">
                                     <property name="label">Sequence</property>
                                     <property name="name">col_sequence</property>
                                     <property name="permission">protected</property>
                                     <property name="type">Text</property>
                                 </object>
-                                <object class="dataViewListColumn" expanded="1">
+                                <object class="dataViewListColumn" expanded="0">
                                     <property name="label">Protocol</property>
                                     <property name="name">col_protocol</property>
                                     <property name="permission">protected</property>
                                     <property name="type">Text</property>
                                 </object>
-                                <object class="dataViewListColumn" expanded="1">
+                                <object class="dataViewListColumn" expanded="0">
                                     <property name="label">Image Type</property>
                                     <property name="name">col_imagetype</property>
                                     <property name="permission">protected</property>
                                     <property name="type">Text</property>
                                 </object>
-                                <object class="dataViewListColumn" expanded="1">
+                                <object class="dataViewListColumn" expanded="0">
                                     <property name="label">Series ID</property>
                                     <property name="name">col_series</property>
                                     <property name="permission">protected</property>
