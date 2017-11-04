@@ -31,6 +31,11 @@
 echo "Doing some heavy lifting..."
 # TODO: Actually do heavy lifting
 
+# cd /home/
+# dcm2mnc /home/neuro/* .
+# deface_minipipe.pl *.mnc --beastlib /opt/minc/share/beast-library-1.1/ --model-dir /opt/minc/share/icbm152_model_09c/ --model mni_icbm152_t1_tal_nlin_sym_09c brain_defaced.mnc
+# mincanon brain_defaced.mnc
+
 # Return 0 when everything went ok
 exit 0
 
