@@ -14,8 +14,8 @@ from dicom.filereader import InvalidDicomError
 from dummydocker import startDocker, checkIfDone
 from noname import *
 
-series = {}
-outputdir = "D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
+global_series = {}
+#outputdir = "D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
 
 # Required for dist?
 freeze_support()
@@ -42,13 +42,13 @@ class DockerThread(threading.Thread):
     """Multi Worker Thread Class."""
 
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, targetdir, series, processname):
+    def __init__(self, wxObject, targetdir, seriesid, processname):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
         self.processname = processname
         self.targetdir = targetdir
-        self.series = series
+        self.seriesid = seriesid
 
     # ----------------------------------------------------------------------
     def run(self):
@@ -62,15 +62,15 @@ class DockerThread(threading.Thread):
             print "Started"
             while (not checkIfDone(timeout)):
                 time.sleep(5)
-                wx.PostEvent(self.wxObject, ResultEvent((ctr, self.series, self.processname)))
+                wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
                 ctr = 1
             #TODO: Copy Docker files to new dir in temp
             print "Finished DockerThread"
         except Exception as e:
-            wx.PostEvent(self.wxObject, ResultEvent((-1, self.series, self.processname)))
+            wx.PostEvent(self.wxObject, ResultEvent((-1, self.seriesid, self.processname)))
 
         finally:
-            wx.PostEvent(self.wxObject, ResultEvent((2, self.series, self.processname)))
+            wx.PostEvent(self.wxObject, ResultEvent((2, self.seriesid, self.processname)))
             # logger.info('Finished FilterThread')
             # self.terminate()
             # lock.release()
@@ -157,18 +157,18 @@ class ProcessRunPanel(ProcessPanel):
         :param col:
         :return:
         """
-        (count, series, process) = msg.data
+        (count, seriesid, process) = msg.data
         print("\nProgress updated: ", time.ctime())
         print('count = ', count)
         row = 0
         for item in range(self.m_dataViewListCtrlRunning.GetItemCount()):
-            if self.m_dataViewListCtrlRunning.GetValue(row=item,col=1) == series:
+            if self.m_dataViewListCtrlRunning.GetValue(row=item,col=1) == seriesid:
                 row = item
 
         status = ''
         if count == 0:
-            self.m_dataViewListCtrlRunning.AppendItem([process, series, count, "Pending"])
-            self.start[series] = time.time()
+            self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
+            self.start[seriesid] = time.time()
         elif count < 0:
             self.m_dataViewListCtrlRunning.SetValue("ERROR", row=row, col=3)
             self.m_btnRunProcess.Enable()
@@ -180,8 +180,8 @@ class ProcessRunPanel(ProcessPanel):
             self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
             self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
         else:
-            if series in self.start:
-                endtime = time.time() - self.start[series]
+            if seriesid in self.start:
+                endtime = time.time() - self.start[seriesid]
                 status = "(%d secs)" % endtime
             print(status)
             self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
@@ -229,24 +229,25 @@ class ProcessRunPanel(ProcessPanel):
 
         # Get data from other panels
         filepanel = self.getFilePanel()
+        self.outputdir = filepanel.outputdir
         filenames = []
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
         print('All Files:', num_files)
 
         if selection != 'None' and num_files > 0:
-            with open('dummydatabase.txt', 'a') as csvfile:
+            with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
                 writer = csv.writer(csvfile, delimiter=',')
 
                 for i in range(0, num_files):
                     if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
                         # for each series, create temp dir and copy files
-                        series = filepanel.m_dataViewListCtrl1.GetValue(i, 5)
-                        dest = self.copyseries(series)
+                        seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
+                        dest = self.copyseries(seriesid)
 
                         # TODO: Call Docker with series (dest) - then poll
-                        t = DockerThread(self, dest, series, selection)
+                        t = DockerThread(self, dest, seriesid, selection)
                         t.start()
-                        writer.writerow([dest, series, selection])
+                        writer.writerow([dest, seriesid, selection])
                 #writer.close()
 
         else:
@@ -260,12 +261,12 @@ class ProcessRunPanel(ProcessPanel):
 
 
     def copyseries(self, seriesnum):
-        if seriesnum in series:
+        if seriesnum in global_series:
             subdir = self.generateuid(seriesnum)
-            dest = join(outputdir, subdir)
+            dest = join(self.outputdir, subdir)
             if not access(dest, R_OK):
                 mkdir(dest)
-            for f in series[seriesnum]['files']:
+            for f in global_series[seriesnum]['files']:
                 shutil.copy(f, dest)
             return dest
 
@@ -315,6 +316,14 @@ class FileSelectPanel(FilesPanel):
 
         dlg.Destroy()
 
+    def OnOutputdir(self, e):
+        """ Open a file"""
+        dlg = wx.DirDialog(self, "Choose a directory for upload files")
+        if dlg.ShowModal() == wx.ID_OK:
+            self.outputdir = str(dlg.GetPath())
+            self.txtOutputdir.SetValue(self.outputdir)
+        dlg.Destroy()
+
     def extractSeriesInfo(self, inputdir):
         """
         Find all matching files in top level directory
@@ -343,12 +352,12 @@ class FileSelectPanel(FilesPanel):
                          'protocol': str(dcm.ProtocolName),
                          'imagetype': imagetype
                          }
-            if series_num not in series:
-                series[series_num] = {'dicomdata': dicomdata, 'files': []}
-            series[series_num]['files'].append(filename)
+            if series_num not in global_series:
+                global_series[series_num] = {'dicomdata': dicomdata, 'files': []}
+                global_series[series_num]['files'].append(filename)
 
         # Load for selection
-        for s0 in series.items():
+        for s0 in global_series.items():
             s = s0[1]['dicomdata']
             numfiles= len(s0[1]['files'])
             self.m_dataViewListCtrl1.AppendItem(
