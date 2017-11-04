@@ -31,3 +31,6 @@
 echo "Doing some heavy lifting..."
 # TODO: Actually do heavy lifting
 
+# Return 0 when everything went ok
+exit 0
+
