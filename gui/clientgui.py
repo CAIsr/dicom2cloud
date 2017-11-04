@@ -1,21 +1,21 @@
-import wx
-from os import listdir, R_OK, path, mkdir, access, walk
-from os.path import isdir, join, commonprefix, dirname
-import argparse
-import sys
-import re
-from hashlib import sha256
-from glob import iglob
+import csv
 import shutil
-import time
-import dicom
 import threading
+import time
+from glob import iglob
+from hashlib import sha256
 from multiprocessing import freeze_support
-from dicom.filereader import InvalidDicomError, read_file
+from os import R_OK, mkdir, access, walk
+from os.path import join
+
+import dicom
+from dicom.filereader import InvalidDicomError
+
+from dummydocker import startDocker, checkIfDone
 from noname import *
-from dummydocker import startDocker,checkIfDone
-series ={}
-outputdir="D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
+
+series = {}
+outputdir = "D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
 
 # Required for dist?
 freeze_support()
@@ -37,11 +37,12 @@ class ResultEvent(wx.PyEvent):
         self.SetEventType(EVT_RESULT_ID)
         self.data = data
 
+
 class DockerThread(threading.Thread):
     """Multi Worker Thread Class."""
 
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, targetdir, series,processname):
+    def __init__(self, wxObject, targetdir, series, processname):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
@@ -53,27 +54,28 @@ class DockerThread(threading.Thread):
     def run(self):
         i = 0
         try:
-            #event.set()
-            #lock.acquire(True)
+            # event.set()
+            # lock.acquire(True)
             # Do work
             (containername, timeout) = startDocker(self.targetdir)
             ctr = 0
             print "Started"
-            while(not checkIfDone(timeout)):
+            while (not checkIfDone(timeout)):
                 time.sleep(5)
                 wx.PostEvent(self.wxObject, ResultEvent((ctr, self.series, self.processname)))
                 ctr = 1
-
+            #TODO: Copy Docker files to new dir in temp
             print "Finished DockerThread"
         except Exception as e:
             wx.PostEvent(self.wxObject, ResultEvent((-1, self.series, self.processname)))
 
         finally:
             wx.PostEvent(self.wxObject, ResultEvent((2, self.series, self.processname)))
-            #logger.info('Finished FilterThread')
+            # logger.info('Finished FilterThread')
             # self.terminate()
-            #lock.release()
-            #event.clear()
+            # lock.release()
+            # event.clear()
+
 
 ########################################################################
 class HomePanel(WelcomePanel):
@@ -114,27 +116,29 @@ class HomePanel(WelcomePanel):
         '''
         return content
 
+
 ########################################################################
 class ProcessRunPanel(ProcessPanel):
     def __init__(self, parent):
         super(ProcessRunPanel, self).__init__(parent)
-        self.processes = [{'caption':'None','href': 'na',
-             'description':''},
-            {'caption': 'QSM', 'href': 'qsm',
-             'description': 'Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.',
-             },
-            {'caption': 'Atlas', 'href': 'atlas',
-             'description': 'Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.',
-             }
-            ]
+        self.processes = [{'caption': 'None', 'href': 'na',
+                           'description': ''},
+                          {'caption': 'QSM', 'href': 'qsm',
+                           'description': 'Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.',
+                           },
+                          {'caption': 'Atlas', 'href': 'atlas',
+                           'description': 'Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.',
+                           }
+                          ]
 
         processes = [p['caption'] for p in self.processes]
-        #self.m_checkListProcess.AppendItems(processes)
+        # self.m_checkListProcess.AppendItems(processes)
         # Set up event handler for any worker thread results
         EVT_RESULT(self, self.progressfunc)
         # EVT_CANCEL(self, self.stopfunc)
         # Set timer handler
         self.start = {}
+        self.toggleval =0
 
     def OnShowDescription(self, event):
         print(event.String)
@@ -156,8 +160,12 @@ class ProcessRunPanel(ProcessPanel):
         (count, series, process) = msg.data
         print("\nProgress updated: ", time.ctime())
         print('count = ', count)
-        row = 0 #TODO replace with actual line
-        status=''
+        row = 0
+        for item in range(self.m_dataViewListCtrlRunning.GetItemCount()):
+            if self.m_dataViewListCtrlRunning.GetValue(row=item,col=1) == series:
+                row = item
+
+        status = ''
         if count == 0:
             self.m_dataViewListCtrlRunning.AppendItem([process, series, count, "Pending"])
             self.start[series] = time.time()
@@ -165,14 +173,19 @@ class ProcessRunPanel(ProcessPanel):
             self.m_dataViewListCtrlRunning.SetValue("ERROR", row=row, col=3)
             self.m_btnRunProcess.Enable()
         elif count == 1:
+            if self.toggleval == 25:
+                self.toggleval = 75
+            else:
+                self.toggleval =25
             self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
+            self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
         else:
             if series in self.start:
                 endtime = time.time() - self.start[series]
                 status = "(%d secs)" % endtime
             print(status)
             self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
-            self.m_dataViewListCtrlRunning.SetValue("Done " + status, row=row, col=3)
+            self.m_dataViewListCtrlRunning.SetValue("Uploaded " + status, row=row, col=3)
             self.m_btnRunProcess.Enable()
 
     def getFilePanel(self):
@@ -221,16 +234,20 @@ class ProcessRunPanel(ProcessPanel):
         print('All Files:', num_files)
 
         if selection != 'None' and num_files > 0:
-            for i in range(0, num_files):
-                if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                    #for each series, create temp dir and copy files
-                    series = filepanel.m_dataViewListCtrl1.GetValue(i, 5)
-                    dest = self.copyseries(series)
+            with open('dummydatabase.txt', 'a') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
 
-                    #TODO: Call Docker with series (dest) - then poll
-                    t = DockerThread(self,  dest,series,selection)
-                    t.start()
+                for i in range(0, num_files):
+                    if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
+                        # for each series, create temp dir and copy files
+                        series = filepanel.m_dataViewListCtrl1.GetValue(i, 5)
+                        dest = self.copyseries(series)
 
+                        # TODO: Call Docker with series (dest) - then poll
+                        t = DockerThread(self, dest, series, selection)
+                        t.start()
+                        writer.writerow([dest, series, selection])
+                #writer.close()
 
         else:
             if selection == 'None':
@@ -238,24 +255,27 @@ class ProcessRunPanel(ProcessPanel):
             else:
                 msg = "No files selected - please go to Files Panel and add to list"
             self.Parent.Warn(msg)
-            # Enable Run button
-            self.m_btnRunProcess.Enable()
+        # Enable Run button
+        self.m_btnRunProcess.Enable()
+
 
     def copyseries(self, seriesnum):
         if seriesnum in series:
             subdir = self.generateuid(seriesnum)
-            dest = join(outputdir,subdir)
-            if not access(dest,R_OK):
+            dest = join(outputdir, subdir)
+            if not access(dest, R_OK):
                 mkdir(dest)
             for f in series[seriesnum]['files']:
-                shutil.copy(f,dest)
+                shutil.copy(f, dest)
             return dest
 
-    def generateuid(self,seriesnum):
+
+    def generateuid(self, seriesnum):
         hashed = sha256(seriesnum).hexdigest()
         return hashed
 
-    def checkhashed(self,seriesnum, hashed):
+
+    def checkhashed(self, seriesnum, hashed):
         if hashed == sha256(seriesnum).hexdigest():
             print("It Matches!")
             return True
@@ -264,6 +284,8 @@ class ProcessRunPanel(ProcessPanel):
             return False
 
 ########################################################################
+
+
 class MyFileDropTarget(wx.FileDropTarget):
     def __init__(self, target):
         super(MyFileDropTarget, self).__init__()
@@ -271,7 +293,7 @@ class MyFileDropTarget(wx.FileDropTarget):
 
     def OnDropFiles(self, x, y, filenames):
         for fname in filenames:
-            self.target.AppendItem([True, fname]) #TODO
+            self.target.AppendItem([True, fname])  # TODO
         return len(filenames)
 
 
@@ -281,7 +303,6 @@ class FileSelectPanel(FilesPanel):
         super(FileSelectPanel, self).__init__(parent)
         self.filedrop = MyFileDropTarget(self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
-
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -294,7 +315,6 @@ class FileSelectPanel(FilesPanel):
 
         dlg.Destroy()
 
-
     def extractSeriesInfo(self, inputdir):
         """
         Find all matching files in top level directory
@@ -302,9 +322,9 @@ class FileSelectPanel(FilesPanel):
         :return:
         """
         self.m_status.SetLabelText("Detecting DICOM data ... please wait")
-        #allfiles = [y for y in iglob(join(inputdir, '*.IMA'))]
+        # allfiles = [y for y in iglob(join(inputdir, '*.IMA'))]
         allfiles = [y for x in walk(inputdir) for y in iglob(join(x[0], '*.IMA'))]
-        #series = {}
+        # series = {}
         for filename in allfiles:
             try:
                 dcm = dicom.read_file(filename)
@@ -312,30 +332,31 @@ class FileSelectPanel(FilesPanel):
                 print("Not DICOM - skipping: ", filename)
                 continue
 
-            #Check DICOM header info
+            # Check DICOM header info
 
             series_num = str(dcm.SeriesInstanceUID)
             imagetype = str(dcm.ImageType[2])
             dicomdata = {'patientid': str(dcm.PatientID),
-                     'patientname': str(dcm.PatientName),
-                    'series_num': series_num,
-                    'sequence': str(dcm.SequenceName),
-                     'protocol':str(dcm.ProtocolName),
-                    'imagetype':imagetype
-                     }
+                         'patientname': str(dcm.PatientName),
+                         'series_num': series_num,
+                         'sequence': str(dcm.SequenceName),
+                         'protocol': str(dcm.ProtocolName),
+                         'imagetype': imagetype
+                         }
             if series_num not in series:
-                series[series_num] = {'dicomdata':dicomdata, 'files':[]}
+                series[series_num] = {'dicomdata': dicomdata, 'files': []}
             series[series_num]['files'].append(filename)
 
-        #Load for selection
-        for s in series.items():
-            s = s[1]['dicomdata']
-            self.m_dataViewListCtrl1.AppendItem([True,s['patientid'],s['sequence'], s['protocol'],s['imagetype'],s['series_num']])
+        # Load for selection
+        for s0 in series.items():
+            s = s0[1]['dicomdata']
+            numfiles= len(s0[1]['files'])
+            self.m_dataViewListCtrl1.AppendItem(
+                [True, s['patientid'], s['sequence'], s['protocol'], s['imagetype'], numfiles,s['series_num']])
 
-        #self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
+        # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
         self.m_status.SetLabelText(msg)
-
 
     def OnSelectall(self, event):
         for i in range(0, self.m_dataViewListCtrl1.GetItemCount()):
@@ -346,12 +367,12 @@ class FileSelectPanel(FilesPanel):
         print("Clear items in list")
         self.m_dataViewListCtrl1.DeleteAllItems()
 
+
 ########################################################################
 class AppMain(wx.Listbook):
     def __init__(self, parent):
         """Constructor"""
         wx.Listbook.__init__(self, parent, wx.ID_ANY, style=wx.BK_DEFAULT)
-
 
         self.InitUI()
         self.Centre(wx.BOTH)
@@ -373,12 +394,11 @@ class AppMain(wx.Listbook):
         # il.Add(bmp)
         # self.AssignImageList(il)
 
-        pages = [(HomePanel(self),'Welcome'),
-                 #(ConfigPanel(self), "Configure"),
+        pages = [(HomePanel(self), 'Welcome'),
+                 # (ConfigPanel(self), "Configure"),
                  (FileSelectPanel(self), "Select Files"),
-                 (ProcessRunPanel(self), "Run Processes"),
-                 (ComparePanel(self), "Compare Groups")]
-
+                 (ProcessRunPanel(self), "Upload Processes"),
+                 (ComparePanel(self), "Check Cloud")]
 
         imID = 0
         for page, label in pages:
@@ -428,6 +448,7 @@ class AppMain(wx.Listbook):
             self.Destroy()
         else:
             e.Veto()
+
 
 ########################################################################
 class ClinicApp(wx.Frame):

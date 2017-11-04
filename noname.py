@@ -582,7 +582,7 @@ class ComparePanel ( wx.Panel ):
 		
 		bSizer1 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_staticText18 = wx.StaticText( self, wx.ID_ANY, u"Comparison of Group Statistics", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText18 = wx.StaticText( self, wx.ID_ANY, u"Cloud Processing Status", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText18.Wrap( -1 )
 		self.m_staticText18.SetFont( wx.Font( 14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Arial" ) )
 		
@@ -591,89 +591,34 @@ class ComparePanel ( wx.Panel ):
 		self.m_staticline1 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
 		bSizer1.Add( self.m_staticline1, 0, wx.EXPAND, 5 )
 		
-		self.m_staticText58 = wx.StaticText( self, wx.ID_ANY, u"Select directory containing compiled ratios, areas, avg MSD and avg Log10D for each group and provide matching prefix as group name", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_LEFT )
+		self.m_staticText58 = wx.StaticText( self, wx.ID_ANY, u"Click update to refresh status of files processing in the cloud", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_LEFT )
 		self.m_staticText58.Wrap( 650 )
 		self.m_staticText58.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		
 		bSizer1.Add( self.m_staticText58, 0, wx.ALL|wx.EXPAND, 5 )
 		
-		fgSizer2 = wx.FlexGridSizer( 0, 4, 0, 0 )
-		fgSizer2.SetFlexibleDirection( wx.BOTH )
-		fgSizer2.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_NONE )
+		self.m_tcResults = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 500,400 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.SIMPLE_BORDER|wx.VSCROLL )
+		bSizer1.Add( self.m_tcResults, 0, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
 		
-		self.m_staticText19 = wx.StaticText( self, wx.ID_ANY, u"Group 1", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText19.Wrap( -1 )
-		fgSizer2.Add( self.m_staticText19, 0, wx.ALL, 5 )
-		
-		self.m_tcGp1 = wx.TextCtrl( self, wx.ID_ANY, u"STIM", wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer2.Add( self.m_tcGp1, 0, wx.ALL, 5 )
-		
-		self.m_tcGp1Files = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 256,-1 ), 0 )
-		fgSizer2.Add( self.m_tcGp1Files, 0, wx.ALL, 5 )
-		
-		self.m_btnGp1 = wx.Button( self, wx.ID_ANY, u"Browse", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer2.Add( self.m_btnGp1, 0, wx.ALL, 5 )
-		
-		self.m_staticText20 = wx.StaticText( self, wx.ID_ANY, u"Group 2", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText20.Wrap( -1 )
-		fgSizer2.Add( self.m_staticText20, 0, wx.ALL, 5 )
-		
-		self.m_tcGp2 = wx.TextCtrl( self, wx.ID_ANY, u"NOSTIM", wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer2.Add( self.m_tcGp2, 0, wx.ALL, 5 )
-		
-		self.m_tcGp2Files = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 256,-1 ), 0 )
-		fgSizer2.Add( self.m_tcGp2Files, 0, wx.ALL, 5 )
-		
-		self.m_btnGp2 = wx.Button( self, wx.ID_ANY, u"Browse", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer2.Add( self.m_btnGp2, 0, wx.ALL, 5 )
-		
-		
-		bSizer1.Add( fgSizer2, 1, wx.EXPAND, 5 )
-		
-		bSizer3 = wx.BoxSizer( wx.HORIZONTAL )
-		
-		self.m_btnCompareRun = wx.Button( self, wx.ID_ANY, u"Run", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
+		self.m_btnCompareRun = wx.Button( self, wx.ID_ANY, u"Update", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
 		self.m_btnCompareRun.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
 		self.m_btnCompareRun.SetBackgroundColour( wx.Colour( 0, 128, 64 ) )
 		
-		bSizer3.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
-		
-		self.m_btnCompareStop = wx.Button( self, wx.ID_ANY, u"Stop", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_btnCompareStop.Enable( False )
-		
-		bSizer3.Add( self.m_btnCompareStop, 0, wx.ALL, 5 )
-		
-		
-		bSizer1.Add( bSizer3, 1, wx.ALIGN_RIGHT|wx.RIGHT, 5 )
-		
-		self.m_tcResults = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 500,400 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.SIMPLE_BORDER|wx.VSCROLL )
-		bSizer1.Add( self.m_tcResults, 0, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
+		bSizer1.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
 		
 		
 		self.SetSizer( bSizer1 )
 		self.Layout()
 		
 		# Connect Events
-		self.m_btnGp1.Bind( wx.EVT_BUTTON, self.OnBrowseGp1 )
-		self.m_btnGp2.Bind( wx.EVT_BUTTON, self.OnBrowseGp2 )
 		self.m_btnCompareRun.Bind( wx.EVT_BUTTON, self.OnCompareRun )
-		self.m_btnCompareStop.Bind( wx.EVT_BUTTON, self.OnCompareStop )
 	
 	def __del__( self ):
 		pass
 	
 	
 	# Virtual event handlers, overide them in your derived class
-	def OnBrowseGp1( self, event ):
-		event.Skip()
-	
-	def OnBrowseGp2( self, event ):
-		event.Skip()
-	
 	def OnCompareRun( self, event ):
-		event.Skip()
-	
-	def OnCompareStop( self, event ):
 		event.Skip()
 	
 
@@ -774,6 +719,7 @@ class FilesPanel ( wx.Panel ):
 		self.col_sequence = self.m_dataViewListCtrl1.AppendTextColumn( u"Sequence" )
 		self.col_protocol = self.m_dataViewListCtrl1.AppendTextColumn( u"Protocol" )
 		self.col_imagetype = self.m_dataViewListCtrl1.AppendTextColumn( u"Image Type" )
+		self.col_num = self.m_dataViewListCtrl1.AppendTextColumn( u"Num Files" )
 		self.col_series = self.m_dataViewListCtrl1.AppendTextColumn( u"Series ID" )
 		bSizer18.Add( self.m_dataViewListCtrl1, 0, wx.ALIGN_TOP|wx.ALL|wx.EXPAND, 5 )
 		
