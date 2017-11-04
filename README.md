@@ -24,6 +24,8 @@ https://cloudstor.aarnet.edu.au/plus/index.php/s/d82ybF0SugqBsJp
   unzip example.zip
 ```
 
+interface files for cloud:
+https://nextcloud.qriscloud.org.au/index.php/s/AJo9U3Tlf4pLyGl
 
 ## Steps that needed to performed on the client side for "Atlas" pipeline
 ```bash
