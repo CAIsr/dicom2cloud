@@ -35,7 +35,7 @@ dcm2mnc GR_IR_M_10_mp2rage-wip900_0.75iso_7T_UNI-DEN/* .
 
 
 cd test_sb_20150915_105259/
-deface_minipipe.pl test_sb_20150915_105259_10_mri.mnc --beastlib /data/lfs2/software/ubuntu14/beast-library-1.1/ --model-dir /data/lfs2/software/ubuntu14/beast_atlas_icbm152_2009/ --model mni_icbm152_t1_tal_nlin_sym_09c defaced.mnc
+deface_minipipe.pl test_sb_20150915_105259_10_mri.mnc --beastlib /opt/minc/share/beast-library-1.1/ --model-dir /opt/minc/share/icbm152_model_09c/ --model mni_icbm152_t1_tal_nlin_sym_09c defaced.mnc
 
 
 
