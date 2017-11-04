@@ -1,4 +1,0 @@
-dicom==0.9.9.post1
-numpy==1.13.1
-pandas==0.20.3
-pydicom==0.9.9
