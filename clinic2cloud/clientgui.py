@@ -11,7 +11,7 @@ from os.path import join
 import dicom
 from dicom.filereader import InvalidDicomError
 
-from dummydocker import startDocker, checkIfDone
+from runDocker import startDocker, checkIfDone, getStatus, finalizeJob
 from noname import *
 
 global_series = {}
@@ -57,15 +57,23 @@ class DockerThread(threading.Thread):
             # event.set()
             # lock.acquire(True)
             # Do work
-            (containername, timeout) = startDocker(self.targetdir)
+            container = startDocker(self.targetdir)
             ctr = 0
             print "Started"
-            while (not checkIfDone(timeout)):
+            while (not checkIfDone(container)):
                 time.sleep(5)
                 wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
                 ctr = 1
-            #TODO: Copy Docker files to new dir in temp
+
+            # Check that everything ran ok
+            if getStatus(container) != 0:
+                raise Exception("There was an error while anonomizing the dataset.")
+
+            # Get the resulting mnc file back to the original directory
+            finalizeJob(container, self.targetdir)
+
             print "Finished DockerThread"
+
         except Exception as e:
             wx.PostEvent(self.wxObject, ResultEvent((-1, self.seriesid, self.processname)))
 
