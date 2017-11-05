@@ -4,7 +4,12 @@ Copyright 2017 The Clinic2Cloud Team
 Licence: BSD 2-Clause
 """
 
+# Libraries for google cloud
 from google.cloud import storage as gstorage
+
+# Libraries for AWS
+import boto3
+from botocore.errorfactory import ClientError as botoClientError
 
 class uploadBase:
     """ Base class for uploads. """
@@ -33,14 +38,13 @@ class uploadGoogle(uploadBase):
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
 
-        self.storage_client = None
+        self.storage_client = gstorage.Client.from_service_account_json(
+            '/src/HealthHack/clinic2cloud-ce7ac00ac070.json')
+
         self.bucket = None
 
     def upload(self, uploadFilename, processingOptions):
         uploadBase.upload(self, uploadFilename, processingOptions)
-
-        self.storage_client = gstorage.Client.from_service_account_json(
-            '/src/HealthHack/clinic2cloud-ce7ac00ac070.json')
 
         # Create a new bucket with the uid
         self.bucket = self.storage_client.create_bucket(self.uid)
@@ -55,13 +59,19 @@ class uploadGoogle(uploadBase):
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.isDone(self)
+        uploadBase.poll(self)
+
+        if self.bucket is None:
+            self.bucket = self.storage_client.get_bucket(self.uid)
 
         blobDone = self.bucket.blob('done')
         return blobDone.exists()
 
     def download(self, downloadFilename):
         uploadBase.download(self, downloadFilename)
+
+        if self.bucket is None:
+            self.bucket = self.storage_client.get_bucket(self.uid)
 
         # Download output
         blobOutput = self.bucket.blob('output.tar')
@@ -76,18 +86,50 @@ class uploadAws(uploadBase):
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
 
+        # Keys for testing
+        ACCESS_KEY = 'AKIAJMCQSW3BE53VZGUQ'
+        SECRET_KEY = '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'
+
+        # Create a client for the connection
+        self.client = boto3.client('s3',
+                aws_access_key_id=ACCESS_KEY,
+                aws_secret_access_key=SECRET_KEY)
+
     def upload(self, uploadFilename, processingOptions):
         uploadBase.upload(self, uploadFilename, processingOptions)
-        # TODO
+
+        # TODO: This should be in its own bucket or have its own uid
+
+        # Upload the file to be processed
+        self.client.upload_file(uploadFilename,
+                'clinic-to-cloud', 'magnitude.nii')
+
+        # TODO: Upload the processing options
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.isDone(self)
-        # TODO
+        uploadBase.poll(self)
+
+        bucket = 'clinic-to-cloud-processed'
+        key = 'magnitude_processed.nii.gz'
+
+        try:
+            self.client.head_object(Bucket=bucket, Key=key)
+            return True
+        except botoClientError:
+            return False
 
     def download(self, downloadFilename):
         uploadBase.download(self, downloadFilename)
-        # TODO
+
+        bucket = 'clinic-to-cloud-processed'
+        key = 'magnitude_processed.nii.gz'
+
+        # Download the result
+        self.client.download_file(bucket, key, downloadFilename)
+
+        # Cleanup resources
+        self.client.delete_object(Bucket=bucket, Key=key)
 
 class uploadNectar(uploadBase):
     """ Upload to a Nectar Cloud instance. """
@@ -101,7 +143,7 @@ class uploadNectar(uploadBase):
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.isDone(self)
+        uploadBase.poll(self)
         # TODO
 
     def download(self, downloadFilename):
