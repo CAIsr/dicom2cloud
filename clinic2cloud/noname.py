@@ -521,7 +521,7 @@ class ProcessPanel ( wx.Panel ):
 		bSizer16.Add( self.m_btnStopProcess, 0, wx.ALL, 5 )
 		
 		
-		bSizer15.Add( bSizer16, 1, wx.ALIGN_BOTTOM, 5 )
+		bSizer15.Add( bSizer16, 1, wx.EXPAND, 5 )
 		
 		
 		bSizer20.Add( bSizer15, 1, wx.EXPAND, 5 )
@@ -635,15 +635,18 @@ class WelcomePanel ( wx.Panel ):
 		
 		self.m_staticText23 = wx.StaticText( self, wx.ID_ANY, u"Clinic 2 Cloud", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText23.Wrap( -1 )
-		self.m_staticText23.SetFont( wx.Font( 14, wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
+		self.m_staticText23.SetFont( wx.Font( 14, wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
 		
-		bSizer18.Add( self.m_staticText23, 0, wx.ALL, 5 )
+		bSizer18.Add( self.m_staticText23, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
 		
 		self.m_staticline2 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
 		bSizer18.Add( self.m_staticline2, 0, wx.EXPAND |wx.ALL, 5 )
 		
+		self.m_bitmap1 = wx.StaticBitmap( self, wx.ID_ANY, wx.Bitmap( u"MRI_img.bmp", wx.BITMAP_TYPE_ANY ), wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer18.Add( self.m_bitmap1, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
+		
 		self.m_richText1 = wx.richtext.RichTextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_READONLY|wx.NO_BORDER|wx.VSCROLL|wx.WANTS_CHARS, wx.DefaultValidator, u"welcome" )
-		bSizer18.Add( self.m_richText1, 1, wx.ALL|wx.EXPAND, 5 )
+		bSizer18.Add( self.m_richText1, 1, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
 		
 		
 		self.SetSizer( bSizer18 )
@@ -725,7 +728,7 @@ class FilesPanel ( wx.Panel ):
 		self.m_dataViewListCtrl1.SetMinSize( wx.Size( -1,300 ) )
 		
 		self.col_selected = self.m_dataViewListCtrl1.AppendToggleColumn( u"Select" )
-		self.col_patient = self.m_dataViewListCtrl1.AppendTextColumn( u"PatientID" )
+		self.col_patient = self.m_dataViewListCtrl1.AppendTextColumn( u"Patient" )
 		self.col_sequence = self.m_dataViewListCtrl1.AppendTextColumn( u"Sequence" )
 		self.col_protocol = self.m_dataViewListCtrl1.AppendTextColumn( u"Protocol" )
 		self.col_imagetype = self.m_dataViewListCtrl1.AppendTextColumn( u"Image Type" )

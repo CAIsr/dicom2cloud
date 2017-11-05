@@ -222,32 +222,42 @@ class ProcessRunPanel(ProcessPanel):
 
         # Get data from other panels
         filepanel = self.getFilePanel()
-        self.outputdir = filepanel.outputdir
+
         filenames = []
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
         print('All Files:', num_files)
+        try:
+            if selection != 'None' and num_files > 0 and filepanel.outputdir is not None and len(filepanel.outputdir)>0:
+                self.outputdir = filepanel.outputdir
+                if filepanel.inputdir == self.outputdir:
+                    msg ='Input and output directories are the same - cannot continue as will overwrite files'
+                    raise ValueError(msg)
+                with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
+                    writer = csv.writer(csvfile, delimiter=',')
 
-        if selection != 'None' and num_files > 0:
-            with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
-                writer = csv.writer(csvfile, delimiter=',')
+                    for i in range(0, num_files):
+                        if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
+                            # for each series, create temp dir and copy files
+                            seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
+                            self.m_stOutputlog.SetLabelText("Copying DICOM data %s ... please wait" % seriesid)
+                            dest = self.copyseries(seriesid)
 
-                for i in range(0, num_files):
-                    if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                        # for each series, create temp dir and copy files
-                        seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
-                        dest = self.copyseries(seriesid)
+                            # TODO: Call Docker with series (dest) - then poll
+                            t = DockerThread(self, dest, seriesid, selection)
+                            t.start()
+                            self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
+                            writer.writerow([dest, seriesid, selection])
+                    #writer.close()
 
-                        # TODO: Call Docker with series (dest) - then poll
-                        t = DockerThread(self, dest, seriesid, selection)
-                        t.start()
-                        writer.writerow([dest, seriesid, selection])
-                #writer.close()
-
-        else:
-            if selection == 'None':
-                msg = "No processes selected"
             else:
-                msg = "No files selected - please go to Files Panel and add to list"
+                if selection == 'None':
+                    msg = "No processes selected"
+                elif filepanel.outputdir is None or len(filepanel.outputdir)<=0:
+                    msg = "No outputdir provided"
+                else:
+                    msg = "No files selected - please go to Files Panel and add to list"
+                raise ValueError(msg)
+        except ValueError as e:
             self.Parent.Warn(msg)
         # Enable Run button
         self.m_btnRunProcess.Enable()
@@ -302,6 +312,7 @@ class FileSelectPanel(FilesPanel):
         super(FileSelectPanel, self).__init__(parent)
         self.filedrop = MyFileDropTarget(self,self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
+        self.outputdir=''
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -367,7 +378,7 @@ class FileSelectPanel(FilesPanel):
             #               Text        Num Files
             #               Text        Series ID
             self.m_dataViewListCtrl1.AppendItem(
-                [True, s['patientid'], s['sequence'], s['protocol'],
+                [True, s['patientname'], s['sequence'], s['protocol'],
                 s['imagetype'], str(numfiles), s['series_num']])
 
         # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
@@ -398,10 +409,10 @@ class AppMain(wx.Listbook):
 
         # make an image list using the LBXX images
         # il = wx.ImageList(32, 32)
-        # # for x in [wx.ArtProvider.]:
-        # #     obj = getattr(images, 'LB%02d' % (x + 1))
-        # #     bmp = obj.GetBitmap()
-        # #     il.Add(bmp)
+        # for x in [wx.ArtProvider.]:
+        #     obj = getattr(images, 'LB%02d' % (x + 1))
+        #     bmp = obj.GetBitmap()
+        #     il.Add(bmp)
         # bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_FRAME_ICON, (16, 16))
         # il.Add(bmp)
         # bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_FRAME_ICON, (16, 16))
@@ -423,7 +434,7 @@ class AppMain(wx.Listbook):
             imID += 1
 
         # TODO: This line doesn't work
-        #self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
 
         self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
         self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
