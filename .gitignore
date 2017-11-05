@@ -8,4 +8,5 @@
 
 dist/*
 clinic2cloud.egg-info/*
+build/*
 
