@@ -478,7 +478,7 @@ class ClinicApp(wx.Frame):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
                           "Clinic2Cloud App",
-                          size=(900, 900)
+                          size=(700, 700)
                           )
 
         # self.timer = wx.Timer(self)
