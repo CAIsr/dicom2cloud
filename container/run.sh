@@ -32,7 +32,9 @@ echo "Doing some heavy lifting..."
 # TODO: Actually do heavy lifting
 
 cd /home/neuro
-dcm2mnc /home/neuro/* temp.mnc
+mkdir mnc
+dcm2mnc -clobber /home/neuro/* ./mnc
+mv ./mnc/*.mnc ./temp.mnc
 deface_minipipe.pl temp.mnc --beastlib /opt/minc/share/beast-library-1.1/ --model-dir /opt/minc/share/icbm152_model_09c/ --model mni_icbm152_t1_tal_nlin_sym_09c output.mnc
 mincanon output.mnc
 
