@@ -111,3 +111,12 @@ def finalizeJob(container, outputDir):
         tar.extractall(path=outputDir)
         tar.close()
 
+    client.api.remove_container(container)
+
+def killJob(container):
+    """ Abort the docker job and kill the container. """
+    try:
+        client.api.kill(container)
+    except:
+        client.api.remove_container(container)
+
