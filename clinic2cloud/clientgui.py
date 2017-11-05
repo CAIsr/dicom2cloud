@@ -235,10 +235,10 @@ class ProcessRunPanel(ProcessPanel):
         # Get selected processes
         selection = self.m_checkListProcess.GetStringSelection()
         print("Processes selected: ", selection)
-        self.server = self.m_server.GetValue().lower()
+        self.server = self.m_server.GetStringSelection().lower()
         # Get data from other panels
         filepanel = self.getFilePanel()
-
+        msg=''
         filenames = []
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
         print('All Files:', num_files)
@@ -250,7 +250,8 @@ class ProcessRunPanel(ProcessPanel):
                     raise ValueError(msg)
                 csvheader=['Filename','Series','Process','Server']
                 with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
-                    writer = csv.writer(csvfile, delimiter=',', fieldnames=csvheader)
+                    writer = csv.DictWriter(csvfile, fieldnames=csvheader)
+                    writer.writeheader()
 
                     for i in range(0, num_files):
                         if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
@@ -263,13 +264,12 @@ class ProcessRunPanel(ProcessPanel):
                             t = DockerThread(self, dest, seriesid, selection, self.server)
                             t.start()
                             self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
-                            writer.writerow([dest, seriesid, selection, self.server])
-                    #writer.close()
+                            writer.writerow({'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
 
             else:
                 if selection == 'None':
                     msg = "No processes selected"
-                elif filepanel.outputdir is None or len(filepanel.outputdir)<=0:
+                elif filepanel.outputdir is None:# or len(filepanel.outputdir)<=0:
                     msg = "No outputdir provided"
                 else:
                     msg = "No files selected - please go to Files Panel and add to list"
@@ -439,7 +439,6 @@ class AppMain(wx.Listbook):
         # self.AssignImageList(il)
 
         pages = [(HomePanel(self), 'Welcome'),
-                 # (ConfigPanel(self), "Configure"),
                  (FileSelectPanel(self), "Select Files"),
                  (ProcessRunPanel(self), "Upload Processes"),
                  (CloudRunPanel(self), "Check Cloud")]
@@ -499,35 +498,50 @@ class CloudRunPanel(CloudPanel):
     def __init__(self, parent):
         super(CloudRunPanel, self).__init__(parent)
 
-
-
     def OnUpdate( self, event ):
         """
         Load dummydatabase and for each seriesID - poll class
         :param event:
         :return:
         """
-        filepanel = self.Parent.getFilePanel()
+        filepanel = self.getFilePanel()
         self.outputdir = filepanel.outputdir
         dbfile = join(self.outputdir,'dummydatabase.txt')
+        csvheader = ['Filename', 'Series', 'Process', 'Server']
 
-        reader = csv.DictReader(dbfile)
         self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
-        for row in reader:
-            print(row['Filename'], row['Server'])
-            seriesid= split(row['Filename'])[1]
-            server = row['Server'].lower()
-            #Get uploader class and query
-            uploaderClass = get_class(server)
-            uploader = uploaderClass(seriesid)
-            done = uploader.isDone()
-            if done:
-                uploader.download(join(self.outputdir,seriesid,'download.tar'))
-                msg = 'Series: %s - status: Complete (%d)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
+        with open(dbfile) as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                print(row['Filename'], row['Server'])
+                seriesid= split(row['Filename'])[1]
+                server = row['Server'].lower()
+                #Get uploader class and query
+                uploaderClass = get_class(server)
+                uploader = uploaderClass(seriesid)
+                done = uploader.isDone()
+                if done:
+                    uploader.download(join(self.outputdir,seriesid,'download.tar'))
+                    msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
 
-            else:
-                msg= 'Series: %s - status: Still processing (%d)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
-            self.m_tcResults.AppendText(msg)
+                else:
+                    msg= 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
+                self.m_tcResults.AppendText(msg)
+        print('Finished cloud panel update')
+
+    def getFilePanel(self):
+        """
+        Get access to filepanel
+        :return:
+        """
+        filepanel = None
+
+        for fp in self.Parent.Children:
+            if isinstance(fp, FileSelectPanel):
+                filepanel = fp
+                break
+        return filepanel
+
 
     def OnClearOutput( self, event ):
         """

@@ -492,53 +492,35 @@ class ProcessPanel ( wx.Panel ):
 		self.m_checkListProcess.SetSelection( 0 )
 		bSizer20.Add( self.m_checkListProcess, 0, wx.ALL, 5 )
 		
-		bSizer15 = wx.BoxSizer( wx.VERTICAL )
+		bSizer29 = wx.BoxSizer( wx.VERTICAL )
 		
 		self.m_stTitle = wx.StaticText( self, wx.ID_ANY, u"TITLE", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_stTitle.Wrap( -1 )
-		self.m_stTitle.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
+		self.m_stTitle.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
 		
-		bSizer15.Add( self.m_stTitle, 0, wx.ALL, 5 )
+		bSizer29.Add( self.m_stTitle, 0, wx.ALL, 5 )
 		
-		self.m_stDescription = wx.StaticText( self, wx.ID_ANY, u"Process Description", wx.DefaultPosition, wx.Size( -1,80 ), 0|wx.FULL_REPAINT_ON_RESIZE|wx.VSCROLL )
+		self.m_stDescription = wx.StaticText( self, wx.ID_ANY, u"Process Description", wx.DefaultPosition, wx.Size( -1,60 ), 0 )
 		self.m_stDescription.Wrap( -1 )
-		self.m_stDescription.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
+		bSizer29.Add( self.m_stDescription, 0, wx.ALL|wx.EXPAND, 5 )
 		
-		bSizer15.Add( self.m_stDescription, 0, wx.ALL|wx.EXPAND, 5 )
+		self.txtCloudserver = wx.StaticText( self, wx.ID_ANY, u"Select Cloud server", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.txtCloudserver.Wrap( -1 )
+		bSizer29.Add( self.txtCloudserver, 0, wx.ALL, 5 )
 		
-		bSizer15 = wx.BoxSizer( wx.HORIZONTAL )
-		
-		self.m_staticText55 = wx.StaticText( self, wx.ID_ANY, u"Select Cloud server", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText55.Wrap( -1 )
-		bSizer15.Add( self.m_staticText55, 0, wx.ALL, 5 )
-		
-		m_serverChoices = [ u"Google", u"AWS" ]
+		m_serverChoices = [ u"AWS", u"Google" ]
 		self.m_server = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_serverChoices, 0 )
 		self.m_server.SetSelection( 0 )
-		bSizer15.Add( self.m_server, 0, wx.ALL, 5 )
+		bSizer29.Add( self.m_server, 0, wx.ALL, 5 )
 		
-		
-		bSizer15.Add( bSizer15, 1, wx.EXPAND, 5 )
-		
-		bSizer16 = wx.BoxSizer( wx.HORIZONTAL )
-		
-		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"Run", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN Processing", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
-		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 0, 128, 0 ) )
+		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 0, 128, 64 ) )
 		
-		bSizer16.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
-		
-		self.m_btnStopProcess = wx.Button( self, wx.ID_ANY, u"Stop", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_btnStopProcess.SetForegroundColour( wx.Colour( 255, 0, 0 ) )
-		self.m_btnStopProcess.Enable( False )
-		
-		bSizer16.Add( self.m_btnStopProcess, 0, wx.ALL, 5 )
+		bSizer29.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
 		
 		
-		bSizer15.Add( bSizer16, 1, wx.EXPAND, 5 )
-		
-		
-		bSizer20.Add( bSizer15, 1, wx.EXPAND, 5 )
+		bSizer20.Add( bSizer29, 1, wx.EXPAND, 5 )
 		
 		
 		bSizer19.Add( bSizer20, 1, wx.EXPAND, 5 )
@@ -568,7 +550,6 @@ class ProcessPanel ( wx.Panel ):
 		# Connect Events
 		self.m_checkListProcess.Bind( wx.EVT_RADIOBOX, self.OnShowDescription )
 		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
-		self.m_btnStopProcess.Bind( wx.EVT_BUTTON, self.OnCancelScripts )
 	
 	def __del__( self ):
 		pass
@@ -579,9 +560,6 @@ class ProcessPanel ( wx.Panel ):
 		event.Skip()
 	
 	def OnRunScripts( self, event ):
-		event.Skip()
-	
-	def OnCancelScripts( self, event ):
 		event.Skip()
 	
 

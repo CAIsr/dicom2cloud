@@ -55,7 +55,7 @@ class uploadGoogle(uploadBase):
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.poll(self)
+        uploadBase.isDone(self)
 
         blobDone = self.bucket.blob('done')
         return blobDone.exists()
@@ -82,7 +82,7 @@ class uploadAws(uploadBase):
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.poll(self)
+        uploadBase.isDone(self)
         # TODO
 
     def download(self, downloadFilename):
@@ -101,7 +101,7 @@ class uploadNectar(uploadBase):
 
     def isDone(self):
         """ Poll the status of the submitted job. """
-        uploadBase.poll(self)
+        uploadBase.isDone(self)
         # TODO
 
     def download(self, downloadFilename):
