@@ -47,6 +47,9 @@ def startDocker(dataSet):
     @return container   Reference to the created docker container.
     """
 
+    # Check for updates to the docker image
+    client.images.pull(CONTAINER_NAME)
+
     container = client.api.create_container(CONTAINER_NAME)
 
     with docker.utils.tar(dataSet) as tar:
