@@ -33,14 +33,13 @@ class uploadGoogle(uploadBase):
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
 
-        self.storage_client = None
+        self.storage_client = gstorage.Client.from_service_account_json(
+            '/src/HealthHack/clinic2cloud-ce7ac00ac070.json')
+
         self.bucket = None
 
     def upload(self, uploadFilename, processingOptions):
         uploadBase.upload(self, uploadFilename, processingOptions)
-
-        self.storage_client = gstorage.Client.from_service_account_json(
-            '/src/HealthHack/clinic2cloud-ce7ac00ac070.json')
 
         # Create a new bucket with the uid
         self.bucket = self.storage_client.create_bucket(self.uid)
@@ -57,11 +56,17 @@ class uploadGoogle(uploadBase):
         """ Poll the status of the submitted job. """
         uploadBase.poll(self)
 
+        if self.bucket is None:
+            self.bucket = self.storage_client.get_bucket(self.uid)
+
         blobDone = self.bucket.blob('done')
         return blobDone.exists()
 
     def download(self, downloadFilename):
         uploadBase.download(self, downloadFilename)
+
+        if self.bucket is None:
+            self.bucket = self.storage_client.get_bucket(self.uid)
 
         # Download output
         blobOutput = self.bucket.blob('output.tar')
