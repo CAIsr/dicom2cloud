@@ -506,6 +506,20 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer15.Add( self.m_stDescription, 0, wx.ALL|wx.EXPAND, 5 )
 		
+		bSizer15 = wx.BoxSizer( wx.HORIZONTAL )
+		
+		self.m_staticText55 = wx.StaticText( self, wx.ID_ANY, u"Select Cloud server", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText55.Wrap( -1 )
+		bSizer15.Add( self.m_staticText55, 0, wx.ALL, 5 )
+		
+		m_serverChoices = [ u"Google", u"AWS" ]
+		self.m_server = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_serverChoices, 0 )
+		self.m_server.SetSelection( 0 )
+		bSizer15.Add( self.m_server, 0, wx.ALL, 5 )
+		
+		
+		bSizer15.Add( bSizer15, 1, wx.EXPAND, 5 )
+		
 		bSizer16 = wx.BoxSizer( wx.HORIZONTAL )
 		
 		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"Run", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -572,10 +586,10 @@ class ProcessPanel ( wx.Panel ):
 	
 
 ###########################################################################
-## Class ComparePanel
+## Class CloudPanel
 ###########################################################################
 
-class ComparePanel ( wx.Panel ):
+class CloudPanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
 		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 700,700 ), style = wx.SIMPLE_BORDER|wx.TAB_TRAVERSAL )
@@ -600,25 +614,37 @@ class ComparePanel ( wx.Panel ):
 		self.m_tcResults = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 500,400 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.SIMPLE_BORDER|wx.VSCROLL )
 		bSizer1.Add( self.m_tcResults, 0, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
 		
+		bSizer16 = wx.BoxSizer( wx.HORIZONTAL )
+		
 		self.m_btnCompareRun = wx.Button( self, wx.ID_ANY, u"Update", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
 		self.m_btnCompareRun.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
 		self.m_btnCompareRun.SetBackgroundColour( wx.Colour( 0, 128, 64 ) )
 		
-		bSizer1.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
+		bSizer16.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
+		
+		self.m_button14 = wx.Button( self, wx.ID_ANY, u"Clear Output", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer16.Add( self.m_button14, 0, wx.ALL, 5 )
+		
+		
+		bSizer1.Add( bSizer16, 1, wx.EXPAND, 5 )
 		
 		
 		self.SetSizer( bSizer1 )
 		self.Layout()
 		
 		# Connect Events
-		self.m_btnCompareRun.Bind( wx.EVT_BUTTON, self.OnCompareRun )
+		self.m_btnCompareRun.Bind( wx.EVT_BUTTON, self.OnUpdate )
+		self.m_button14.Bind( wx.EVT_BUTTON, self.OnClearOutput )
 	
 	def __del__( self ):
 		pass
 	
 	
 	# Virtual event handlers, overide them in your derived class
-	def OnCompareRun( self, event ):
+	def OnUpdate( self, event ):
+		event.Skip()
+	
+	def OnClearOutput( self, event ):
 		event.Skip()
 	
 

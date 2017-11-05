@@ -7,6 +7,7 @@ from hashlib import sha256
 from multiprocessing import freeze_support
 from os import R_OK, mkdir, access, walk
 from os.path import join, isdir,split
+from uploadScripts import get_class
 
 import dicom
 from dicom.filereader import InvalidDicomError
@@ -41,13 +42,14 @@ class DockerThread(threading.Thread):
     """Multi Worker Thread Class."""
 
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, targetdir, seriesid, processname):
+    def __init__(self, wxObject, targetdir, seriesid, processname, server):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
         self.processname = processname
         self.targetdir = targetdir
         self.seriesid = seriesid
+        self.server = server
 
     # ----------------------------------------------------------------------
     def run(self):
@@ -71,13 +73,23 @@ class DockerThread(threading.Thread):
             # Get the resulting mnc file back to the original directory
             finalizeJob(container, self.targetdir)
 
+            #Upload MNC to server
+            mncfile = join(self.targetdir,'output.mnc')
+            uploadfile = join(self.targetdir,self.seriesid + '.mnc')
+            if access(mncfile,R_OK):
+                shutil.copyfile(mncfile,uploadfile)
+                uploaderClass = get_class(self.server)
+                uploader = uploaderClass(self.seriesid)
+                uploader.upload(uploadfile, self.processname)
+                wx.PostEvent(self.wxObject, ResultEvent((2, self.seriesid, self.processname)))
+                print "Uploaded file: %s to %s" % (uploadfile, self.server)
             print "Finished DockerThread"
 
         except Exception as e:
             wx.PostEvent(self.wxObject, ResultEvent((-1, self.seriesid, self.processname)))
 
         finally:
-            wx.PostEvent(self.wxObject, ResultEvent((2, self.seriesid, self.processname)))
+            wx.PostEvent(self.wxObject, ResultEvent((10, self.seriesid, self.processname)))
             # logger.info('Finished FilterThread')
             # self.terminate()
             # lock.release()
@@ -132,6 +144,7 @@ class ProcessRunPanel(ProcessPanel):
         # Set timer handler
         self.start = {}
         self.toggleval =0
+        self.server =''
 
     def OnShowDescription(self, event):
         print(event.String)
@@ -172,6 +185,9 @@ class ProcessRunPanel(ProcessPanel):
                 self.toggleval =25
             self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
             self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
+        elif count == 2:
+            self.m_dataViewListCtrlRunning.SetValue("Uploading", row=row, col=3)
+            self.m_dataViewListCtrlRunning.SetValue(75, row=row, col=2)
         else:
             if seriesid in self.start:
                 endtime = time.time() - self.start[seriesid]
@@ -219,7 +235,7 @@ class ProcessRunPanel(ProcessPanel):
         # Get selected processes
         selection = self.m_checkListProcess.GetStringSelection()
         print("Processes selected: ", selection)
-
+        self.server = self.m_server.GetValue().lower()
         # Get data from other panels
         filepanel = self.getFilePanel()
 
@@ -232,8 +248,9 @@ class ProcessRunPanel(ProcessPanel):
                 if filepanel.inputdir == self.outputdir:
                     msg ='Input and output directories are the same - cannot continue as will overwrite files'
                     raise ValueError(msg)
+                csvheader=['Filename','Series','Process','Server']
                 with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
-                    writer = csv.writer(csvfile, delimiter=',')
+                    writer = csv.writer(csvfile, delimiter=',', fieldnames=csvheader)
 
                     for i in range(0, num_files):
                         if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
@@ -243,10 +260,10 @@ class ProcessRunPanel(ProcessPanel):
                             dest = self.copyseries(seriesid)
 
                             # TODO: Call Docker with series (dest) - then poll
-                            t = DockerThread(self, dest, seriesid, selection)
+                            t = DockerThread(self, dest, seriesid, selection, self.server)
                             t.start()
                             self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
-                            writer.writerow([dest, seriesid, selection])
+                            writer.writerow([dest, seriesid, selection, self.server])
                     #writer.close()
 
             else:
@@ -425,7 +442,7 @@ class AppMain(wx.Listbook):
                  # (ConfigPanel(self), "Configure"),
                  (FileSelectPanel(self), "Select Files"),
                  (ProcessRunPanel(self), "Upload Processes"),
-                 (ComparePanel(self), "Check Cloud")]
+                 (CloudRunPanel(self), "Check Cloud")]
 
         imID = 0
         for page, label in pages:
@@ -477,6 +494,48 @@ class AppMain(wx.Listbook):
         else:
             e.Veto()
 
+########################################################################
+class CloudRunPanel(CloudPanel):
+    def __init__(self, parent):
+        super(CloudRunPanel, self).__init__(parent)
+
+
+
+    def OnUpdate( self, event ):
+        """
+        Load dummydatabase and for each seriesID - poll class
+        :param event:
+        :return:
+        """
+        filepanel = self.Parent.getFilePanel()
+        self.outputdir = filepanel.outputdir
+        dbfile = join(self.outputdir,'dummydatabase.txt')
+
+        reader = csv.DictReader(dbfile)
+        self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
+        for row in reader:
+            print(row['Filename'], row['Server'])
+            seriesid= split(row['Filename'])[1]
+            server = row['Server'].lower()
+            #Get uploader class and query
+            uploaderClass = get_class(server)
+            uploader = uploaderClass(seriesid)
+            done = uploader.isDone()
+            if done:
+                uploader.download(join(self.outputdir,seriesid,'download.tar'))
+                msg = 'Series: %s - status: Complete (%d)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
+
+            else:
+                msg= 'Series: %s - status: Still processing (%d)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
+            self.m_tcResults.AppendText(msg)
+
+    def OnClearOutput( self, event ):
+        """
+        Clear output panel
+        :param event:
+        :return:
+        """
+        self.m_tcResults.Clear()
 
 ########################################################################
 class ClinicApp(wx.Frame):
