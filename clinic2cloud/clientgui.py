@@ -6,7 +6,7 @@ from glob import iglob
 from hashlib import sha256
 from multiprocessing import freeze_support
 from os import R_OK, mkdir, access, walk
-from os.path import join
+from os.path import join, isdir,split
 
 import dicom
 from dicom.filereader import InvalidDicomError
@@ -15,7 +15,6 @@ from runDocker import startDocker, checkIfDone, getStatus, finalizeJob
 from noname import *
 
 global_series = {}
-#outputdir = "D:\\Projects\\clinic2cloud\\temp\\upload\\raw"
 
 # Required for dist?
 freeze_support()
@@ -104,25 +103,11 @@ class HomePanel(WelcomePanel):
         self.m_richText1.AddParagraph(
             r"1. Select a Folder containing one or more MRI scans to process in the Files Panel")
         self.m_richText1.AddParagraph(r"2. Select which processes to run and monitor their progress")
-
+        self.m_richText1.AddParagraph(r" ")
         self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
         self.m_richText1.AddParagraph(
             r"Copyright (2017) Apache license v2 ")
 
-    def __loadContent(self):
-        """
-        Welcome text
-        :return:
-        """
-        content = '''***Welcome to the MSD Automated Analysis App***
-        To process your files: 
-            1. Check the Configuration options, particularly the column names and filenames used for matching
-            2. Select Files to process either with AutoFind from a top level directory and/or Drag and Drop
-            3. Select which processes to run and monitor their progress
-            4. Choose Compare Groups to run a statistical comparison of two groups after processing files have been generated
-
-        '''
-        return content
 
 
 ########################################################################
@@ -139,7 +124,7 @@ class ProcessRunPanel(ProcessPanel):
                            }
                           ]
 
-        processes = [p['caption'] for p in self.processes]
+        #processes = [p['caption'] for p in self.processes]
         # self.m_checkListProcess.AppendItems(processes)
         # Set up event handler for any worker thread results
         EVT_RESULT(self, self.progressfunc)
@@ -296,13 +281,18 @@ class ProcessRunPanel(ProcessPanel):
 
 
 class MyFileDropTarget(wx.FileDropTarget):
-    def __init__(self, target):
+    def __init__(self, panel,target):
         super(MyFileDropTarget, self).__init__()
         self.target = target
+        self.droppedfiles=[]
+        self.panel = panel
 
     def OnDropFiles(self, x, y, filenames):
         for fname in filenames:
-            self.target.AppendItem([True, fname])  # TODO
+            if not isdir(fname):
+                fname = split(fname)[0]
+            self.panel.extractSeriesInfo(fname)
+            #self.target.AppendItem([True, fname])  # TODO
         return len(filenames)
 
 
@@ -310,7 +300,7 @@ class MyFileDropTarget(wx.FileDropTarget):
 class FileSelectPanel(FilesPanel):
     def __init__(self, parent):
         super(FileSelectPanel, self).__init__(parent)
-        self.filedrop = MyFileDropTarget(self.m_dataViewListCtrl1)
+        self.filedrop = MyFileDropTarget(self,self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
 
     def OnInputdir(self, e):
@@ -362,7 +352,7 @@ class FileSelectPanel(FilesPanel):
                          }
             if series_num not in global_series:
                 global_series[series_num] = {'dicomdata': dicomdata, 'files': []}
-                global_series[series_num]['files'].append(filename)
+            global_series[series_num]['files'].append(filename)
 
         # Load for selection
         for s0 in global_series.items():
