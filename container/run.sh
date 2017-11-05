@@ -34,7 +34,9 @@ cd /home/neuro
 echo "Doing dicom to minc conversion"
 dcm2mnc -clobber -dname ./ -fname temp /home/neuro/* .
 echo "Doing defacing"
-deface_minipipe.pl temp.mnc --beastlib /opt/minc/share/beast-library-1.1/ --model-dir /opt/minc/share/icbm152_model_09c/ --model mni_icbm152_t1_tal_nlin_sym_09c output.mnc
+deface_minipipe.pl temp.mnc --beastlib /opt/minc/share/beast-library-1.1/ --model-dir /opt/minc/share/icbm152_model_09c/ --model mni_icbm152_t1_tal_nlin_sym_09c out
+mincfile=`find *.mnc -print -quit`
+mv $mincfile output.mnc
 echo "Anonymising"
 mincanon output.mnc
 
