@@ -109,14 +109,14 @@ class HomePanel(WelcomePanel):
         # text = wx.TextCtrl(self, style=wx.TE_MULTILINE,value=self.__loadContent())
         # hbox.Add(text, proportion=1, flag=wx.EXPAND)
         # self.SetSizer(hbox)
-        self.m_richText1.AddParagraph(r'''***Welcome to the Clinic2Cloud App***''')
+        self.m_richText1.AddParagraph(r'''***Welcome to the Dicom2Cloud App***''')
         self.m_richText1.AddParagraph(r''' An application to process your MRI scans in the cloud ''')
         # self.m_richText1.BeginNumberedBullet(1, 0.2, 0.2, wx.TEXT_ATTR_BULLET_STYLE)
         self.m_richText1.AddParagraph(
             r"1. Select a Folder containing one or more MRI scans to process in the Files Panel")
         self.m_richText1.AddParagraph(r"2. Select which processes to run and monitor their progress")
         self.m_richText1.AddParagraph(r" ")
-        self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
+        #self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
         self.m_richText1.AddParagraph(
             r"Copyright (2017) Apache license v2 ")
 
@@ -561,7 +561,7 @@ class ClinicApp(wx.Frame):
     def __init__(self):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "Clinic2Cloud App",
+                          "Dicom2Cloud App",
                           size=(700, 700)
                           )
 
