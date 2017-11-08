@@ -1,5 +1,5 @@
-# Clinic2Cloud Docker container.
-# November 2017, Copyright Clinic2Cloud team, licence: BSD 2-Clause
+# Dicom2cloud Docker container.
+# November 2017, Copyright Dicom2cloud team, licence: BSD 2-Clause
 
 FROM kaczmarj/minc:1.9.15_centos7
 

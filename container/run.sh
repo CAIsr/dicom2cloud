@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# run.sh - This is the main pipeline script for the clinic2cloud.
+# run.sh - This is the main pipeline script for the dicom2cloud.
 #    This script calls the other scripts that actually do the heavy lifting.
 #
-# Copyright 2017 Clinc2Clound Team
+# Copyright 2017 Dicom2clound Team
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -28,7 +28,7 @@
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-echo "Doing some heavy lifting..."
+echo "Starting the defacing/anonymisation pipeline"
 
 cd /home/neuro
 echo "Doing dicom to minc conversion"

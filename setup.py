@@ -1,7 +1,7 @@
-""" PIP setup module for clinic2cloud system
+""" PIP setup module for dicom2cloud system
 
 Licence: BSD 2-clause
-Copyright 2017 Clinic2Cloud Team
+Copyright 2017 Dicom2cloud Team
 
 """
 
@@ -18,22 +18,22 @@ with open(path.join(here, 'README'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='clinic2cloud',
+    name='dicom2cloud',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.7',
+    version='0.8',
 
     description=('Platform independent GUI for anonymizing/uploading '
 		'brain scans to an image processing cloud instance'),
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/CAIsr/clinic2cloud',
+    url='https://github.com/CAIsr/dicom2cloud',
 
     # Author details
-    author='The Clinic2Cloud Team',
+    author='The Dicom2cloud Team',
     author_email='steffen.bollmann@cai.uq.edu.au',
 
     # Choose your license
@@ -102,7 +102,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'clinic2cloud = clinic2cloud.clientgui:main',
+            'dicom2cloud = dicom2cloud.clientgui:main',
         ],
     },
 )

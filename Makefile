@@ -4,7 +4,7 @@ default:
 
 build-client-docker:
 	# This is only for local testing, docker auto-builds on commit
-	docker build container -t clinic2cloud:dev
+	docker build container -t dicom2cloud:dev
 
 build-pip:
 	# Building source distribution for pip
