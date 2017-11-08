@@ -118,7 +118,9 @@ class HomePanel(WelcomePanel):
         self.m_richText1.AddParagraph(r" ")
         #self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
         self.m_richText1.AddParagraph(
-            r"Copyright (2017) Apache license v2 ")
+            r"Copyright 2017 Dicom2Cloud Team")
+        self.m_richText1.AddParagraph(
+            r"This is free software, you may use/distribute it under the terms of the Apache license v2")
 
 
 
