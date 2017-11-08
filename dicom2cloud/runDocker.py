@@ -2,7 +2,7 @@
 #
 # runDocker.py - Functions to run and interact with the docker container.
 #
-# Copyright 2017 Clinc2Clound Team
+# Copyright 2017 Dicom2cloud Team
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -34,7 +34,7 @@ import os
 
 client = docker.from_env()
 
-CONTAINER_NAME = "ilent2/clinic2cloud"
+CONTAINER_NAME = "ilent2/dicom2cloud"
 
 INPUT_TARGET = "/home/neuro/"
 OUTPUT_FILENAME = "output.mnc"
