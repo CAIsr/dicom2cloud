@@ -1,3 +1,5 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f26b00376cb2407bb1dbd107d8b1c53b)](https://www.codacy.com/app/stebo85/dicom2cloud?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CAIsr/dicom2cloud&amp;utm_campaign=Badge_Grade)
+
 # Dicom2Cloud - A platform independent graphical user interface for anonymizing and uploading clinical brain scans to an image processing cloud instance
 
 ## What is the problem you want to solve?
