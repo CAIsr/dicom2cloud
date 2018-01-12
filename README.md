@@ -1,5 +1,3 @@
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f26b00376cb2407bb1dbd107d8b1c53b)](https://www.codacy.com/app/stebo85/dicom2cloud?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CAIsr/dicom2cloud&amp;utm_campaign=Badge_Grade)
-
 # Dicom2Cloud - A platform independent graphical user interface for anonymizing and uploading clinical brain scans to an image processing cloud instance
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d8db641bde0482da2c2f3bfe131d4e1)](https://www.codacy.com/app/stebo85/dicom2cloud?utm_source=github.com&utm_medium=referral&utm_content=CAIsr/dicom2cloud&utm_campaign=badger)
