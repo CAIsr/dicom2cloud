@@ -2,6 +2,9 @@
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/9d8db641bde0482da2c2f3bfe131d4e1)](https://www.codacy.com/app/stebo85/dicom2cloud?utm_source=github.com&utm_medium=referral&utm_content=CAIsr/dicom2cloud&utm_campaign=badger)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1146127.svg)](https://doi.org/10.5281/zenodo.1146127)
+
+
 ## What is the problem you want to solve?
 Current image processing techniques have reached a high level of sophistication and allow the extraction of extensive information from medical imaging data. The problem is that most of these modern post processing techniques are not applied in a clinical setting, because the software developed by scientists is difficult to use, often does not run on operating systems used by clinicians, and requires extensive hardware resources. The integration of new post processing techniques by vendors often takes many years, if the vendors take the risk at all to implement a new technique. One solution to bring modern image processing into the clinic would be to take the medical data outside of the clinic and utilize a powerful cloud instance where all tools are installed and the clinician can upload the data. The problem however is, that medical data contains sensitive information that cannot be easily removed, such as facial features in magnetic resonance imaging data of the brain.
 
