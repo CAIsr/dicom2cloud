@@ -51,3 +51,27 @@ body {
   max-width: 800px;
   margin-left: 10px;
 }
+
+.status-box > div {
+  margin-left: 20px;
+  margin-right: 20px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  padding: 20px;
+}
+
+.status-box .warning {
+  background: yellow;
+  border: 1px solid black;
+}
+
+.status-box .bad {
+  background: red;
+  border: 1px solid black;
+}
+
+.status-box .good {
+  background: green;
+  border: 1px solid black;
+}
+

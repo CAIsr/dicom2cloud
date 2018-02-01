@@ -3,6 +3,7 @@
 
 <head>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/jquery-1.11.3.min.js"></script>
   <title>Dicom2Cloud - Check for Updates</title>
 </head>
 
@@ -32,24 +33,27 @@ to the Dicom2Cloud components.
 </p>
 
 <h2>User Interface</h2>
-<div id="interface">
-  <div id="interface_online">
-  Running the latest version.  Version information.
+<div class="status-box" id="interface">
+  <div class="good" id="interface_online">
+  Running the latest version.
+  <div id="interface_current"></div>
   </div>
 
-  <div id="interface_latest">
-  Running a downloaded version.  This is the latest version.
-  Version information.
+  <div class="good" id="interface_latest">
+  Running a downloaded version.  This version is up to date
+  with the latest release.
+  <div id="interface_current"></div>
   </div>
 
-  <div id="interface_update">
-  Running a downloaded version.  There is an updated version, VERSION NUMBER.
-  Version information.
+  <div class="bad" id="interface_update">
+  Running a downloaded version.  There is an updated version.
+  <div id="interface_current"></div>
+  <div id="interface_latest"></div>
   </div>
 
-  <div id="interface_connect">
+  <div class="warning" id="interface_connect">
   Unable to check for updates.  There may be no internet connection.
-  Currently running, Version information.
+  <div id="interface_current"></div>
   </div>
 </div>
 
@@ -64,6 +68,9 @@ TODO: List docker images, versions, latest versions
 TODO: Colour lines depending on if up-to-date
 
 </div>
+
+<script src="uiversion.js"></script>
+<script src="js/updateCheck.js"></script>
 
 </body>
 
