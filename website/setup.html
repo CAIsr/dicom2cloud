@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="style.css">
+  <title>Dicom2Cloud - Configuration</title>
+</head>
+
+<body>
+
+<div class="header">
+Dicom2Cloud
+</div>
+
+<nav class="nav">
+  <a href="index.html"><div class="link">Home/About</div></a>
+  <a href="install.html"><div class="link">Installation</div></a>
+  <a href="setup.html"><div class="link active">Configuration</div></a>
+  <div class="break"></div>
+  <a href="submit.html"><div class="link">New Job</div></a>
+  <a href="manage.html"><div class="link">View/Manage Jobs</div></a>
+  <div class="break"></div>
+  <a href="download.html"><div class="link">Download Client</div></a>
+  <a href="update.html"><div class="link">Check for Updates</div></a>
+</nav>
+
+<div class="content">
+
+<h1>Configuration</h1>
+
+<h2>Configuration Path</h2>
+<p>Set this first.  The configuration path is stored in the
+system cache, if the cache is cleared then you will need to
+reset this.  All the other configuration options will be loaded
+from files in the configuration directory.
+</p>
+
+<div class="row">
+  <div class="label">Path to store configuration information:</div>
+  <input type="text" id="configPathText">
+  <button id="configPathButton">Select Folder</button>
+</div>
+
+<h2>Docker</h2>
+
+<div class="row">
+  <div class="label">Docker images directory:</div>
+  <input type="text" id="dockerPathText">
+  <button id="dockerPathButton">Select Folder</button>
+</div>
+
+TODO: Installation of docker images
+
+<h2>Cloud Setup</h2>
+
+TODO: Options to setup a cloud instance for use by docker images.
+
+</div>
+
+</body>
+
+</html>
+
