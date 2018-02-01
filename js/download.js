@@ -21,7 +21,11 @@ function getUrlParameter(sParam) {
 var version = getUrlParameter('ver');
 console.log(version);
 if (version !== undefined) {
-  GitZip.zipRepo("https://github.com/CAIsr/dicom2cloud/tree/"
-      + version + "/docs");
+  if (version === true) {
+    GitZip.zipRepo("https://github.com/CAIsr/dicom2cloud/tree/gh-pages");
+  } else {
+    GitZip.zipRepo("https://github.com/CAIsr/dicom2cloud/tree/gh-pages-"
+        + version);
+  }
 }
 
