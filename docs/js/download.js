@@ -21,7 +21,7 @@ function getUrlParameter(sParam) {
 var version = getUrlParameter('ver');
 console.log(version);
 if (version !== undefined) {
-  GitZip.zipRepo("https://github.com/CAIsr/dicom2cloud/"
+  GitZip.zipRepo("https://github.com/CAIsr/dicom2cloud/tree/"
       + version + "/docs");
 }
 
