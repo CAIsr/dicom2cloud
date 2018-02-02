@@ -26,7 +26,33 @@ Dicom2Cloud
 
 <div class="content">
 
-TODO
+<h1>View/Manage Jobs</h1>
+<p>Use this page to submit a job to be run locally or on the cloud. 
+</p>
+
+<div class="status-box">
+  <div class="bad">
+  Error, unable to communicate with the local docker container.</br>
+  Make sure that the dicom2cloud docker container is running.
+  </div>
+</div>
+
+<h2>Jobs</h2>
+
+<p>It would be good to have a filter box to shorten this list.</p>
+
+<p>TODO: Put a list here of all jobs in the current configuration data.</p>
+<p>Poll the docker instance to ask what jobs are
+  currently running and check their status.</p>
+
+<p>Should we have an option to allow users to cancel/pause/suspend jobs?</p>
+
+<h2>Lookup Job From Receipt</h2>
+<p>This will allow us to track down files for a job that
+was submitted (but isn't listed above because the configuration 
+data was deleted).</p>
+
+<input type="file" id="lookupFile"/>
 
 </div>
 
