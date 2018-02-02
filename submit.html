@@ -26,7 +26,82 @@ Dicom2Cloud
 
 <div class="content">
 
-TODO
+<h1>Submit New Job</h1>
+<p>Use this page to submit a job to be run locally or on the cloud. 
+</p>
+
+<div class="status-box">
+  <div class="bad">
+  Error, unable to communicate with the local docker container.</br>
+  Make sure that the dicom2cloud docker container is running.
+  </div>
+</div>
+
+<h2>Select Files</h2>
+
+<input type="file" id="test" directory/>
+
+<p>It would be good if users can drag files/folders here.</p>
+<p>It would be nice to be able to handle zip files too.</p>
+
+<h2>Select Job Steps</h2>
+
+<div>
+Add job step:
+<select>
+  <option value="anonymise" default>Anonymise Locally</option>
+  <option value="cloud1">Send to example cloud service 1</option>
+  <option value="cloud2">Send to example cloud service 2</option>
+  <option value="local1">Process locally with example image 1</option>
+  <option value="local2">Process locally with example image 2</option>
+</select>
+<button>Add</button>
+</div>
+</br>
+
+<div class="list" id="jobSteps">
+  <div class="listHead">
+    <div class="col0">Order</div>
+    <div class="col1">Job Step</div>
+    <div class="col2">Remove</div>
+  </div>
+  <div class="listItem">
+    <div class="col0"></div>
+    <div class="col1">Select a job step from the above list and click add</div>
+    <div class="col2"></div>
+  </div>
+  <div class="listItem">
+    <div class="col0"></div>
+    <div class="col1">Anonymise locally (required for cloud job)</div>
+    <div class="col2"></div>
+  </div>
+  <div class="listItem">
+    <div class="col0"><input type="text" value="0"/></div>
+    <div class="col1">This is a example Job Step</div>
+    <div class="col2"><button>Remove</button></div>
+  </div>
+  <div class="listItem">
+    <div class="col0"><input type="text" value="0"/></div>
+    <div class="col1">This is a example Job Step</div>
+    <div class="col2"><button>Remove</button></div>
+  </div>
+</div>
+
+<h2>Setup Email Notification</h2>
+<p>This would be a useful thing to add in the future</p>
+
+<h2>Submit Job</h2>
+<button id="buttonSubmit">Submit</button>
+
+<div>
+<textarea>
+Reciept
+</textarea>
+</div>
+<div>
+<button id="buttonReset">Reset Form</button>
+<button id="buttonReciept">Download Job Receipt</button>
+</div>
 
 </div>
 
