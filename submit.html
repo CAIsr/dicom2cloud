@@ -39,7 +39,16 @@ Dicom2Cloud
 
 <h2>Select Files</h2>
 
-<input type="file" id="test" directory/>
+<div>
+Human readable job name (do not include sensitive/identifying information):
+<input type="text" id="textName"/>
+</div>
+
+<div>
+Input file:
+<input type="file" id="fileInput"/>
+<!--<input type="file" id="fileInput" directory/>-->
+</div>
 
 <p>It would be good if users can drag files/folders here.</p>
 <p>It would be nice to be able to handle zip files too.</p>
@@ -48,7 +57,7 @@ Dicom2Cloud
 
 <div>
 Add job step:
-<select>
+<select id="selectJobStep">
   <option value="anonymise" default>Anonymise Locally</option>
   <option value="cloud1">Send to example cloud service 1</option>
   <option value="cloud2">Send to example cloud service 2</option>
@@ -60,16 +69,6 @@ Add job step:
 </br>
 
 <div class="list" id="jobSteps">
-  <div class="listHead">
-    <div class="col0">Order</div>
-    <div class="col1">Job Step</div>
-    <div class="col2">Remove</div>
-  </div>
-  <div class="listItem">
-    <div class="col0"></div>
-    <div class="col1">Select a job step from the above list and click add</div>
-    <div class="col2"></div>
-  </div>
   <div class="listItem">
     <div class="col0"></div>
     <div class="col1">Anonymise locally (required for cloud job)</div>
@@ -94,7 +93,7 @@ Add job step:
 <button id="buttonSubmit">Submit</button>
 
 <div>
-<textarea>
+<textarea id="textareaReceipt">
 Reciept
 </textarea>
 </div>
@@ -102,6 +101,8 @@ Reciept
 <button id="buttonReset">Reset Form</button>
 <button id="buttonReciept">Download Job Receipt</button>
 </div>
+
+<script src="js/submit.js"></script>
 
 </div>
 
