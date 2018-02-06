@@ -13,6 +13,10 @@ SubmitModel.prototype.containsCloudStep = function() {
   return false;
 }
 
+SubmitModel.prototype.addStep = function(name) {
+  this.steps.push(name);
+}
+
 function SubmitView(model, id) {
   this.model = model;
   this.div = document.getElementById(id);
@@ -61,16 +65,36 @@ SubmitView.prototype.addCloudAnonymise = function() {
 
 SubmitView.prototype.addJobStep = function(idx, jobStep) {
 
-  // TODO: Change this from being an example job step
+  var row = document.createElement("div");
+  row.classList.add('listItem');
 
-  var html = `<div class="listItem">
-    <div class="col0"><input type="text" value="0"/></div>
-    <div class="col1">This is a example Job Step</div>
-    <div class="col2"><button>Remove</button></div>
-  </div>
-  `;
+  var col0 = document.createElement("div");
+  col0.classList.add('col0');
+  var rowid = document.createElement("input");
+  rowid.setAttribute("type", "text");
+  rowid.setAttribute("value", idx.toString());
+  col0.appendChild(rowid);
+  row.appendChild(col0);
 
-  this.div.innerHTML += html;
+  var col1 = document.createElement("div");
+  col1.classList.add('col1');
+  col1.innerHTML = jobStep;
+  row.appendChild(col1);
+
+  var col2 = document.createElement('div');
+  col2.classList.add('col2');
+  var rmbutton = document.createElement('button');
+  var that = this;
+  rmbutton.onclick = function() {
+    that.model.steps.splice(idx, 1);
+    that.update();
+  }
+  rmbutton.innerHTML = "Remove";
+  col2.appendChild(rmbutton);
+  row.appendChild(col2);
+
+  this.div.appendChild(row);
+  console.log(this.div.childNodes.length);
 }
 
 SubmitView.prototype.update = function() {
@@ -106,9 +130,42 @@ function SubmitControls(model, view) {
   this.textName = document.getElementById("textName");
   this.fileInput = document.getElementById("fileInput");
 
+  this.buttonAdd = document.getElementById("buttonAdd");
+  this.buttonReorder = document.getElementById("buttonReorder");
   this.selectJobStep = document.getElementById("selectJobStep");
 
-  // TODO: Setup callbacks
+  var that = this;
+
+  //
+  // Setup callbacks
+  //
+
+  this.buttonSubmit.addEventListener('click', function() {
+    // TODO
+  });
+  this.buttonReset.addEventListener('click', function() {
+    // TODO
+  });
+  this.buttonReceipt.addEventListener('click', function() {
+    // TODO
+  });
+
+  this.buttonAdd.addEventListener('click', function() {
+    model.addStep(that.selectJobStep.value);
+    view.update();
+  });
+
+  this.buttonReorder.addEventListener('click', function() {
+    // TODO
+  });
+
+  this.textName.addEventListener("change", function() {
+    // TODO
+  });
+
+  this.fileInput.addEventListener("change", function() {
+    // TODO
+  });
 }
 
 //
