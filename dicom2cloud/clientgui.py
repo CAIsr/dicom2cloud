@@ -6,14 +6,14 @@ from glob import iglob
 from hashlib import sha256
 from multiprocessing import freeze_support
 from os import R_OK, mkdir, access, walk
-from os.path import join, isdir,split
-from uploadScripts import get_class
+from os.path import join, isdir, split
 
 import dicom
 from dicom.filereader import InvalidDicomError
 
+from dicom2cloud.gui.noname import *
 from runDocker import startDocker, checkIfDone, getStatus, finalizeJob
-from noname import *
+from uploadScripts import get_class
 
 global_series = {}
 
