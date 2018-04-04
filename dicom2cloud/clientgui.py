@@ -2,98 +2,22 @@ import csv
 import shutil
 import threading
 import time
+import sys
 from glob import iglob
 from hashlib import sha256
 from multiprocessing import freeze_support
 from os import R_OK, mkdir, access, walk
 from os.path import join, isdir, split
 
-import dicom
-from dicom.filereader import InvalidDicomError
+import pydicom as dicom
 
-from dicom2cloud.gui.noname import *
-from runDocker import startDocker, checkIfDone, getStatus, finalizeJob
-from uploadScripts import get_class
+from dicom2cloud.controller import EVT_RESULT, Controller
+from dicom2cloud.gui.wxclientgui import *
+from dicom2cloud.processmodules.runDocker import startDocker, checkIfDone, getStatus, finalizeJob
+from dicom2cloud.processmodules.uploadScripts import get_class
+__version__ = '0.1.alpha'
 
 global_series = {}
-
-# Required for dist?
-freeze_support()
-# Define notification event for thread completion
-EVT_RESULT_ID = wx.NewId()
-
-
-def EVT_RESULT(win, func):
-    """Define Result Event."""
-    win.Connect(-1, -1, EVT_RESULT_ID, func)
-
-
-class ResultEvent(wx.PyEvent):
-    """Simple event to carry arbitrary result data."""
-
-    def __init__(self, data):
-        """Init Result Event."""
-        wx.PyEvent.__init__(self)
-        self.SetEventType(EVT_RESULT_ID)
-        self.data = data
-
-
-class DockerThread(threading.Thread):
-    """Multi Worker Thread Class."""
-
-    # ----------------------------------------------------------------------
-    def __init__(self, wxObject, targetdir, seriesid, processname, server):
-        """Init Worker Thread Class."""
-        threading.Thread.__init__(self)
-        self.wxObject = wxObject
-        self.processname = processname
-        self.targetdir = targetdir
-        self.seriesid = seriesid
-        self.server = server
-
-    # ----------------------------------------------------------------------
-    def run(self):
-        i = 0
-        try:
-            # event.set()
-            # lock.acquire(True)
-            # Do work
-            container = startDocker(self.targetdir)
-            ctr = 0
-            print "Started"
-            while (not checkIfDone(container)):
-                time.sleep(5)
-                wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
-                ctr = 1
-
-            # Check that everything ran ok
-            if getStatus(container) != 0:
-                raise Exception("There was an error while anonomizing the dataset.")
-
-            # Get the resulting mnc file back to the original directory
-            finalizeJob(container, self.targetdir)
-
-            #Upload MNC to server
-            mncfile = join(self.targetdir,'output.mnc')
-            uploadfile = join(self.targetdir,self.seriesid + '.mnc')
-            if access(mncfile,R_OK):
-                shutil.copyfile(mncfile,uploadfile)
-                uploaderClass = get_class(self.server)
-                uploader = uploaderClass(self.seriesid)
-                uploader.upload(uploadfile, self.processname)
-                wx.PostEvent(self.wxObject, ResultEvent((2, self.seriesid, self.processname)))
-                print "Uploaded file: %s to %s" % (uploadfile, self.server)
-            print "Finished DockerThread"
-
-        except Exception as e:
-            wx.PostEvent(self.wxObject, ResultEvent((-1, self.seriesid, self.processname)))
-
-        finally:
-            wx.PostEvent(self.wxObject, ResultEvent((10, self.seriesid, self.processname)))
-            # logger.info('Finished FilterThread')
-            # self.terminate()
-            # lock.release()
-            # event.clear()
 
 
 ########################################################################
@@ -105,40 +29,64 @@ class HomePanel(WelcomePanel):
     # ----------------------------------------------------------------------
     def __init__(self, parent):
         super(HomePanel, self).__init__(parent)
-        # hbox = wx.BoxSizer(wx.HORIZONTAL)
-        # text = wx.TextCtrl(self, style=wx.TE_MULTILINE,value=self.__loadContent())
-        # hbox.Add(text, proportion=1, flag=wx.EXPAND)
-        # self.SetSizer(hbox)
-        self.m_richText1.AddParagraph(r'''***Welcome to the Dicom2Cloud App***''')
-        self.m_richText1.AddParagraph(r''' An application to process your MRI scans in the cloud ''')
-        # self.m_richText1.BeginNumberedBullet(1, 0.2, 0.2, wx.TEXT_ATTR_BULLET_STYLE)
-        self.m_richText1.AddParagraph(
-            r"1. Select a Folder containing one or more MRI scans to process in the Files Panel")
-        self.m_richText1.AddParagraph(r"2. Select which processes to run and monitor their progress")
-        self.m_richText1.AddParagraph(r" ")
-        #self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
-        self.m_richText1.AddParagraph(
-            r"Copyright 2017 Dicom2Cloud Team")
-        self.m_richText1.AddParagraph(
-            r"This is free software, you may use/distribute it under the terms of the Apache license v2")
+        img = wx.Bitmap(1, 1)
+        img.LoadFile(join('gui','MRI_img.bmp'), wx.BITMAP_TYPE_BMP)
+        self.m_richText1.BeginAlignment(wx.TEXT_ALIGNMENT_CENTRE)
+        self.m_richText1.BeginFontSize(14)
+        welcome = "Welcome to the Dicom2Cloud Application"
+        self.m_richText1.WriteText(welcome)
+        self.m_richText1.EndFontSize()
+        self.m_richText1.Newline()
+        self.m_richText1.WriteText("Process your MRI scans with high performance functions in the cloud")
 
+        self.m_richText1.Newline()
+        self.m_richText1.WriteImage(img)
+        self.m_richText1.Newline()
+        self.m_richText1.BeginFontSize(12)
+        welcome = "How to use this desktop application"
+        self.m_richText1.WriteText(welcome)
+        self.m_richText1.EndFontSize()
+        self.m_richText1.Newline()
+        self.m_richText1.Newline()
+        self.m_richText1.BeginNumberedBullet(1, 100,60)
+
+        self.m_richText1.WriteText("1. Select a Folder containing one or more MRI scans to process in the Files Panel")
+        self.m_richText1.EndNumberedBullet()
+        self.m_richText1.Newline()
+        self.m_richText1.BeginNumberedBullet(2, 100, 60)
+        #self.m_richText1.Newline()
+        self.m_richText1.WriteText("2. Select which processes to run and monitor their progress in the Process Panel")
+        self.m_richText1.EndNumberedBullet()
+
+        self.m_richText1.Newline()
+        self.m_richText1.Newline()
+        #self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
+        self.m_richText1.BeginItalic()
+        txt = "Copyright 2017 Dicom2Cloud Team (version %s)" % __version__
+        self.m_richText1.WriteText(txt)
+        self.m_richText1.EndItalic()
+        self.m_richText1.Newline()
+        # self.m_richText1.AddParagraph(
+        #     r"This is free software, you may use/distribute it under the terms of the Apache license v2")
+        self.m_richText1.EndAlignment()
 
 
 ########################################################################
 class ProcessRunPanel(ProcessPanel):
     def __init__(self, parent):
         super(ProcessRunPanel, self).__init__(parent)
-        self.processes = [{'caption': 'None', 'href': 'na',
-                           'description': ''},
-                          {'caption': 'QSM', 'href': 'qsm',
-                           'description': 'Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.',
-                           },
-                          {'caption': 'Atlas', 'href': 'atlas',
-                           'description': 'Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.',
-                           }
-                          ]
+        # self.processes = [{'caption': 'None', 'href': 'na',
+        #                    'description': ''},
+        #                   {'caption': 'QSM', 'href': 'qsm',
+        #                    'description': 'Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.',
+        #                    },
+        #                   {'caption': 'Atlas', 'href': 'atlas',
+        #                    'description': 'Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.',
+        #                    }
+        #                   ]
 
-        #processes = [p['caption'] for p in self.processes]
+        processes = [p['caption'] for p in self.processes]
+        #self.m_checkListProcess.ShowItem()
         # self.m_checkListProcess.AppendItems(processes)
         # Set up event handler for any worker thread results
         EVT_RESULT(self, self.progressfunc)
@@ -427,35 +375,33 @@ class AppMain(wx.Listbook):
     def InitUI(self):
 
         # make an image list using the LBXX images
-        # il = wx.ImageList(32, 32)
-        # for x in [wx.ArtProvider.]:
-        #     obj = getattr(images, 'LB%02d' % (x + 1))
-        #     bmp = obj.GetBitmap()
-        #     il.Add(bmp)
-        # bmp = wx.ArtProvider.GetBitmap(wx.ART_HELP_SETTINGS, wx.ART_FRAME_ICON, (16, 16))
-        # il.Add(bmp)
-        # bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_FRAME_ICON, (16, 16))
-        # il.Add(bmp)
-        # bmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_FRAME_ICON, (16, 16))
-        # il.Add(bmp)
-        # self.AssignImageList(il)
+        il = wx.ImageList(32, 32)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_FRAME_ICON, (32, 32))
+        il.Add(bmp)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_FRAME_ICON, (32, 32))
+        il.Add(bmp)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_FRAME_ICON, (32, 32))
+        il.Add(bmp)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_TIP, wx.ART_FRAME_ICON, (32, 32))
+        il.Add(bmp)
+        self.AssignImageList(il)
 
         pages = [(HomePanel(self), 'Welcome'),
-                 (FileSelectPanel(self), "Select Files"),
-                 (ProcessRunPanel(self), "Upload Processes"),
-                 (CloudRunPanel(self), "Check Cloud")]
+                 (FileSelectPanel(self), "Your Files"),
+                 (ProcessRunPanel(self), "Run Processes"),
+                 (CloudRunPanel(self), "Check Status")]
 
         imID = 0
         for page, label in pages:
-            # self.AddPage(page, label, imageId=imID)
-            self.AddPage(page, label)
+            self.AddPage(page, label, imageId=imID)
+            #self.AddPage(page, label)
             imID += 1
 
-        # TODO: This line doesn't work
-        self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
+        if sys.platform == 'win32':
+            self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
 
-        self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
-        self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
+        #self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
+        #self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
 
     # ----------------------------------------------------------------------
     def OnPageChanged(self, event):
@@ -563,7 +509,7 @@ class ClinicApp(wx.Frame):
     def __init__(self):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "Dicom2Cloud App",
+                          "Dicom2Cloud Desktop Application",
                           size=(700, 700)
                           )
 

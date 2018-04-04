@@ -1,0 +1,2 @@
+1,'QSM','qsm','Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.'
+2,'Atlas','atlas','Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.'
