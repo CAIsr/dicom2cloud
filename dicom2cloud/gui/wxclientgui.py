@@ -223,10 +223,6 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer20 = wx.BoxSizer( wx.HORIZONTAL )
 		
-		m_checkListProcessChoices = []
-		self.m_checkListProcess = wx.RadioBox( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_checkListProcessChoices, 1, wx.RA_SPECIFY_COLS )
-		bSizer20.Add( self.m_checkListProcess, 0, wx.ALL, 5 )
-		
 		bSizer29 = wx.BoxSizer( wx.VERTICAL )
 		
 		self.m_stTitle = wx.StaticText( self, wx.ID_ANY, u"TITLE", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -257,6 +253,10 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer20.Add( bSizer29, 1, wx.EXPAND, 5 )
 		
+		m_checkListProcessChoices = []
+		self.m_checkListProcess = wx.CheckListBox( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_checkListProcessChoices, wx.LB_SINGLE )
+		bSizer20.Add( self.m_checkListProcess, 0, wx.ALL, 5 )
+		
 		
 		bSizer19.Add( bSizer20, 1, wx.EXPAND, 5 )
 		
@@ -283,7 +283,6 @@ class ProcessPanel ( wx.Panel ):
 		self.Layout()
 		
 		# Connect Events
-		self.m_checkListProcess.Bind( wx.EVT_RADIOBOX, self.OnShowDescription )
 		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
 	
 	def __del__( self ):
@@ -291,9 +290,6 @@ class ProcessPanel ( wx.Panel ):
 	
 	
 	# Virtual event handlers, overide them in your derived class
-	def OnShowDescription( self, event ):
-		event.Skip()
-	
 	def OnRunScripts( self, event ):
 		event.Skip()
 	

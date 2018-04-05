@@ -117,27 +117,24 @@ class DockerThread(threading.Thread):
 
 ################################################################################################
 class Controller():
-    def __init__(self, configfile, configID,processfile):
+    def __init__(self):
         self.logger = self.loadLogger()
-        self.processfile = processfile
+        self.db = DBI()
+        if self.db.c is None:
+            self.db.getconn()
         self.cmodules = self.loadProcesses()
-        self.configfile = configfile
-        self.currentconfig = configID #multiple configs possible
-        # connect to db
-        self.db = DBI(configfile)
-        self.db.getconn()
 
     def loadProcesses(self):
         pf = None
         try:
-            pf = open(self.processfile, 'rb')
-            self.processes = yaml.load(pf)
+            self.processes = self.db.getCaptions()
             cmodules={}
             for p in self.processes:
-                msg = "Controller:LoadProcessors: loading %s=%s" % (p, self.processes[p]['caption'])
-                logging.debug(msg)
-                module_name = self.processes[p]['modulename']
-                class_name = self.processes[p]['classname']
+                msg = "Controller:LoadProcessors: loading %s" % p
+                print(msg)
+                # TODO Dynamic loading
+                module_name = self.db.getProcessModule() #self.processes[p]['modulename']
+                class_name = self.db.getProcessClass() #self.processes[p]['classname']
                 cmodules[p] =(module_name,class_name)
             return cmodules
         except Exception as e:

@@ -1,20 +1,20 @@
 import csv
 import shutil
-import threading
-import time
 import sys
+import time
 from glob import iglob
 from hashlib import sha256
-from multiprocessing import freeze_support
 from os import R_OK, mkdir, access, walk
 from os.path import join, isdir, split
 
 import pydicom as dicom
+from pydicom.errors import InvalidDicomError
 
+from dicom2cloud.config.dbquery import DBI
 from dicom2cloud.controller import EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
-from dicom2cloud.processmodules.runDocker import startDocker, checkIfDone, getStatus, finalizeJob
 from dicom2cloud.processmodules.uploadScripts import get_class
+
 __version__ = '0.1.alpha'
 
 global_series = {}
@@ -30,7 +30,7 @@ class HomePanel(WelcomePanel):
     def __init__(self, parent):
         super(HomePanel, self).__init__(parent)
         img = wx.Bitmap(1, 1)
-        img.LoadFile(join('gui','MRI_img.bmp'), wx.BITMAP_TYPE_BMP)
+        img.LoadFile(join('gui', 'MRI_img.bmp'), wx.BITMAP_TYPE_BMP)
         self.m_richText1.BeginAlignment(wx.TEXT_ALIGNMENT_CENTRE)
         self.m_richText1.BeginFontSize(14)
         welcome = "Welcome to the Dicom2Cloud Application"
@@ -48,19 +48,19 @@ class HomePanel(WelcomePanel):
         self.m_richText1.EndFontSize()
         self.m_richText1.Newline()
         self.m_richText1.Newline()
-        self.m_richText1.BeginNumberedBullet(1, 100,60)
+        self.m_richText1.BeginNumberedBullet(1, 100, 60)
 
         self.m_richText1.WriteText("1. Select a Folder containing one or more MRI scans to process in the Files Panel")
         self.m_richText1.EndNumberedBullet()
         self.m_richText1.Newline()
         self.m_richText1.BeginNumberedBullet(2, 100, 60)
-        #self.m_richText1.Newline()
+        # self.m_richText1.Newline()
         self.m_richText1.WriteText("2. Select which processes to run and monitor their progress in the Process Panel")
         self.m_richText1.EndNumberedBullet()
 
         self.m_richText1.Newline()
         self.m_richText1.Newline()
-        #self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
+        # self.m_richText1.AddParagraph(r"Created by Clinic2Cloud team at HealthHack 2017")
         self.m_richText1.BeginItalic()
         txt = "Copyright 2017 Dicom2Cloud Team (version %s)" % __version__
         self.m_richText1.WriteText(txt)
@@ -74,35 +74,24 @@ class HomePanel(WelcomePanel):
 ########################################################################
 class ProcessRunPanel(ProcessPanel):
     def __init__(self, parent):
-        super(ProcessRunPanel, self).__init__(parent)
-        # self.processes = [{'caption': 'None', 'href': 'na',
-        #                    'description': ''},
-        #                   {'caption': 'QSM', 'href': 'qsm',
-        #                    'description': 'Estimate quantitative susceptibility map from gradient echo data. Phase and magnitude images required.',
-        #                    },
-        #                   {'caption': 'Atlas', 'href': 'atlas',
-        #                    'description': 'Estimate atlas-based segmentation from T1-weighted image. Magnitude image required.',
-        #                    }
-        #                   ]
 
-        processes = [p['caption'] for p in self.processes]
-        #self.m_checkListProcess.ShowItem()
-        # self.m_checkListProcess.AppendItems(processes)
+        super(ProcessRunPanel, self).__init__(parent)
+        self.db = DBI()
+        choices = self.db.getCaptions()
+        self.m_checkListProcess.AppendItems(choices)
         # Set up event handler for any worker thread results
         EVT_RESULT(self, self.progressfunc)
         # EVT_CANCEL(self, self.stopfunc)
         # Set timer handler
         self.start = {}
-        self.toggleval =0
-        self.server =''
+        self.toggleval = 0
+        self.server = ''
+        self.controller = Controller()
 
     def OnShowDescription(self, event):
-        print(event.String)
-        desc = [p['description'] for p in self.processes if p['caption'] == event.String]
-
-        # Load to GUI
+        desc = self.db.getDescription(event.String)
         self.m_stTitle.SetLabelText(event.String)
-        self.m_stDescription.SetLabelText(desc[0])
+        self.m_stDescription.SetLabelText(desc)
         self.Layout()
 
     def progressfunc(self, msg):
@@ -118,7 +107,7 @@ class ProcessRunPanel(ProcessPanel):
         print('count = ', count)
         row = 0
         for item in range(self.m_dataViewListCtrlRunning.GetItemCount()):
-            if self.m_dataViewListCtrlRunning.GetValue(row=item,col=1) == seriesid:
+            if self.m_dataViewListCtrlRunning.GetValue(row=item, col=1) == seriesid:
                 row = item
 
         status = ''
@@ -132,7 +121,7 @@ class ProcessRunPanel(ProcessPanel):
             if self.toggleval == 25:
                 self.toggleval = 75
             else:
-                self.toggleval =25
+                self.toggleval = 25
             self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
             self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
         elif count == 2:
@@ -188,18 +177,19 @@ class ProcessRunPanel(ProcessPanel):
         self.server = self.m_server.GetStringSelection().lower()
         # Get data from other panels
         filepanel = self.getFilePanel()
-        msg=''
+        msg = ''
         filenames = []
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
         print('All Files:', num_files)
         try:
-            if selection != 'None' and num_files > 0 and filepanel.outputdir is not None and len(filepanel.outputdir)>0:
+            if selection != 'None' and num_files > 0 and filepanel.outputdir is not None and len(
+                    filepanel.outputdir) > 0:
                 self.outputdir = filepanel.outputdir
                 if filepanel.inputdir == self.outputdir:
-                    msg ='Input and output directories are the same - cannot continue as will overwrite files'
+                    msg = 'Input and output directories are the same - cannot continue as will overwrite files'
                     raise ValueError(msg)
-                csvheader=['Filename','Series','Process','Server']
-                with open(join(self.outputdir,'dummydatabase.txt'), 'a') as csvfile:
+                csvheader = ['Filename', 'Series', 'Process', 'Server']
+                with open(join(self.outputdir, 'dummydatabase.txt'), 'a') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=csvheader)
                     writer.writeheader()
 
@@ -214,12 +204,13 @@ class ProcessRunPanel(ProcessPanel):
                             t = DockerThread(self, dest, seriesid, selection, self.server)
                             t.start()
                             self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
-                            writer.writerow({'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
+                            writer.writerow(
+                                {'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
 
             else:
                 if selection == 'None':
                     msg = "No processes selected"
-                elif filepanel.outputdir is None:# or len(filepanel.outputdir)<=0:
+                elif filepanel.outputdir is None:  # or len(filepanel.outputdir)<=0:
                     msg = "No outputdir provided"
                 else:
                     msg = "No files selected - please go to Files Panel and add to list"
@@ -228,7 +219,6 @@ class ProcessRunPanel(ProcessPanel):
             self.Parent.Warn(msg)
         # Enable Run button
         self.m_btnRunProcess.Enable()
-
 
     def copyseries(self, seriesnum):
         if seriesnum in global_series:
@@ -240,11 +230,9 @@ class ProcessRunPanel(ProcessPanel):
                 shutil.copy(f, dest)
             return dest
 
-
     def generateuid(self, seriesnum):
         hashed = sha256(seriesnum).hexdigest()
         return hashed
-
 
     def checkhashed(self, seriesnum, hashed):
         if hashed == sha256(seriesnum).hexdigest():
@@ -254,14 +242,15 @@ class ProcessRunPanel(ProcessPanel):
             print("It Does not Match")
             return False
 
+
 ########################################################################
 
 
 class MyFileDropTarget(wx.FileDropTarget):
-    def __init__(self, panel,target):
+    def __init__(self, panel, target):
         super(MyFileDropTarget, self).__init__()
         self.target = target
-        self.droppedfiles=[]
+        self.droppedfiles = []
         self.panel = panel
 
     def OnDropFiles(self, x, y, filenames):
@@ -269,7 +258,7 @@ class MyFileDropTarget(wx.FileDropTarget):
             if not isdir(fname):
                 fname = split(fname)[0]
             self.panel.extractSeriesInfo(fname)
-            #self.target.AppendItem([True, fname])  # TODO
+            # self.target.AppendItem([True, fname])  # TODO
         return len(filenames)
 
 
@@ -277,9 +266,9 @@ class MyFileDropTarget(wx.FileDropTarget):
 class FileSelectPanel(FilesPanel):
     def __init__(self, parent):
         super(FileSelectPanel, self).__init__(parent)
-        self.filedrop = MyFileDropTarget(self,self.m_dataViewListCtrl1)
+        self.filedrop = MyFileDropTarget(self, self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
-        self.outputdir=''
+        self.outputdir = ''
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -335,7 +324,7 @@ class FileSelectPanel(FilesPanel):
         # Load for selection
         for s0 in global_series.items():
             s = s0[1]['dicomdata']
-            numfiles= len(s0[1]['files'])
+            numfiles = len(s0[1]['files'])
 
             # Columns:      Toggle      Select
             #               Text        PatientID
@@ -346,7 +335,7 @@ class FileSelectPanel(FilesPanel):
             #               Text        Series ID
             self.m_dataViewListCtrl1.AppendItem(
                 [True, s['patientname'], s['sequence'], s['protocol'],
-                s['imagetype'], str(numfiles), s['series_num']])
+                 s['imagetype'], str(numfiles), s['series_num']])
 
         # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
@@ -394,14 +383,14 @@ class AppMain(wx.Listbook):
         imID = 0
         for page, label in pages:
             self.AddPage(page, label, imageId=imID)
-            #self.AddPage(page, label)
+            # self.AddPage(page, label)
             imID += 1
 
         if sys.platform == 'win32':
             self.GetListView().SetColumnWidth(0, wx.LIST_AUTOSIZE)
 
-        #self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
-        #self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
+            # self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGED, self.OnPageChanged)
+            # self.Bind(wx.EVT_LISTBOOK_PAGE_CHANGING, self.OnPageChanging)
 
     # ----------------------------------------------------------------------
     def OnPageChanged(self, event):
@@ -441,12 +430,13 @@ class AppMain(wx.Listbook):
         else:
             e.Veto()
 
+
 ########################################################################
 class CloudRunPanel(CloudPanel):
     def __init__(self, parent):
         super(CloudRunPanel, self).__init__(parent)
 
-    def OnUpdate( self, event ):
+    def OnUpdate(self, event):
         """
         Load dummydatabase and for each seriesID - poll class
         :param event:
@@ -454,7 +444,7 @@ class CloudRunPanel(CloudPanel):
         """
         filepanel = self.getFilePanel()
         self.outputdir = filepanel.outputdir
-        dbfile = join(self.outputdir,'dummydatabase.txt')
+        dbfile = join(self.outputdir, 'dummydatabase.txt')
         csvheader = ['Filename', 'Series', 'Process', 'Server']
 
         self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
@@ -462,18 +452,19 @@ class CloudRunPanel(CloudPanel):
             reader = csv.DictReader(csvfile)
             for row in reader:
                 print(row['Filename'], row['Server'])
-                seriesid= split(row['Filename'])[1]
+                seriesid = split(row['Filename'])[1]
                 server = row['Server'].lower()
-                #Get uploader class and query
+                # Get uploader class and query
                 uploaderClass = get_class(server)
                 uploader = uploaderClass(seriesid)
                 done = uploader.isDone()
                 if done:
-                    uploader.download(join(self.outputdir,seriesid,'download.tar'))
-                    msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid,join(self.outputdir,seriesid,'download.tar'))
+                    uploader.download(join(self.outputdir, seriesid, 'download.tar'))
+                    msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (
+                    seriesid, join(self.outputdir, seriesid, 'download.tar'))
 
                 else:
-                    msg= 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
+                    msg = 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
                 self.m_tcResults.AppendText(msg)
         print('Finished cloud panel update')
 
@@ -490,14 +481,14 @@ class CloudRunPanel(CloudPanel):
                 break
         return filepanel
 
-
-    def OnClearOutput( self, event ):
+    def OnClearOutput(self, event):
         """
         Clear output panel
         :param event:
         :return:
         """
         self.m_tcResults.Clear()
+
 
 ########################################################################
 class ClinicApp(wx.Frame):
@@ -525,12 +516,13 @@ class ClinicApp(wx.Frame):
         self.Center(wx.BOTH)
         self.Show()
 
+
 def main():
     app = wx.App()
     frame = ClinicApp()
     app.MainLoop()
 
+
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
     main()
-
