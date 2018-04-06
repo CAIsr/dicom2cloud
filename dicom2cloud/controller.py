@@ -8,7 +8,8 @@ from multiprocessing import freeze_support, Pool
 from os import access, R_OK, mkdir
 from os.path import join, dirname, exists, split, splitext, expanduser
 from config.dbquery import DBI
-from dicom2cloud.processmodules.runDocker import startDocker, checkIfDone, getStatus, finalizeJob
+from dicom2cloud.processmodules.testDocker import DCCDocker
+#from dicom2cloud.processmodules.runDocker import startDocker, checkIfDone, getStatus, finalizeJob
 from dicom2cloud.processmodules.uploadScripts import get_class
 import wx
 
@@ -58,11 +59,11 @@ class DataEvent(wx.PyEvent):
         self.data = data
 
 ############################################################################
-class DockerThread(threading.Thread):
+class ProcessThread(threading.Thread):
     """Multi Worker Thread Class."""
 
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, targetdir, seriesid, processname, server):
+    def __init__(self, wxObject, processmodule, targetdir, seriesid, processname, server, filenames, row, containername):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
@@ -70,6 +71,7 @@ class DockerThread(threading.Thread):
         self.targetdir = targetdir
         self.seriesid = seriesid
         self.server = server
+        self.dcc = DCCDocker(containername, filenames, targetdir, outputfile)
 
     # ----------------------------------------------------------------------
     def run(self):
@@ -78,20 +80,20 @@ class DockerThread(threading.Thread):
             # event.set()
             # lock.acquire(True)
             # Do work
-            container = startDocker(self.targetdir)
+            (container, timeout)  = self.dcc.startDocker(self.targetdir)
             ctr = 0
             print "Started"
-            while (not checkIfDone(container)):
+            while (not self.dcc.checkIfDone(container, timeout)):
                 time.sleep(5)
                 wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
                 ctr = 1
 
             # Check that everything ran ok
-            if getStatus(container) != 0:
+            if self.dcc.getStatus(container) != 0:
                 raise Exception("There was an error while anonomizing the dataset.")
 
             # Get the resulting mnc file back to the original directory
-            finalizeJob(container, self.targetdir)
+            self.dcc.finalizeJob(container, self.targetdir)
 
             # Upload MNC to server
             mncfile = join(self.targetdir, 'output.mnc')
@@ -118,23 +120,23 @@ class DockerThread(threading.Thread):
 ################################################################################################
 class Controller():
     def __init__(self):
-        self.logger = self.loadLogger()
+        self.logger = self.__loadLogger()
         self.db = DBI()
         if self.db.c is None:
             self.db.getconn()
-        self.cmodules = self.loadProcesses()
+        self.cmodules = self.__loadProcesses()
 
-    def loadProcesses(self):
+    def __loadProcesses(self):
         pf = None
         try:
-            self.processes = self.db.getCaptions()
+            self.processes = self.db.getRefs()
             cmodules={}
             for p in self.processes:
-                msg = "Controller:LoadProcessors: loading %s" % p
+                msg = "Controller:LoadProcessors: loading %s" % self.db.getCaption(p)
                 print(msg)
-                # TODO Dynamic loading
-                module_name = self.db.getProcessModule() #self.processes[p]['modulename']
-                class_name = self.db.getProcessClass() #self.processes[p]['classname']
+                # Dynamic loading
+                module_name = self.db.getProcessModule(p) #self.processes[p]['modulename']
+                class_name = self.db.getProcessClass(p) #self.processes[p]['classname']
                 cmodules[p] =(module_name,class_name)
             return cmodules
         except Exception as e:
@@ -143,7 +145,7 @@ class Controller():
             if pf is not None:
                 pf.close()
 
-    def loadLogger(self,outputdir=None, expt=''):
+    def __loadLogger(self,outputdir=None, expt=''):
         #### LoggingConfig
         logger.setLevel(logging.INFO)
         homedir = expanduser("~")
@@ -159,3 +161,32 @@ class Controller():
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         return logger
+
+    # ----------------------------------------------------------------------
+    def RunProcess(self, wxGui, targetdir, seriesid, process, server, row):
+        """
+        Instantiate Thread with type for Process
+        :param wxGui:
+        :param filenames:
+        :param type:
+        :param row:
+        :return:
+        """
+
+       # type = self.processes[process]['href']
+        processname = self.db.getCaption(process)
+        containername = "ilent2/dicom2cloud"
+        input = "/home/neuro/"
+        outputfile = "output.mnc"
+        outputdir = "/home/neuro/"
+        filenames = self.db.getFiles(seriesid)
+        if len(filenames) > 0:
+            logger.info("Load Process Threads: %s [row: %d]", type, row)
+            wx.PostEvent(wxGui, ResultEvent((0, row, 0, len(filenames), processname)))
+
+            t = ProcessThread(self, wxGui, self.cmodules[process], targetdir, seriesid, processname, server, filenames, row, containername)
+            t.start()
+            logger.info("Running Thread: %s", type)
+        else:
+            logger.error("No files to process")
+            raise ValueError("No matched files to process")

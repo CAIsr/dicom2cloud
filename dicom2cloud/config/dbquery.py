@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sqlite3
 import pandas
 import glob
@@ -44,16 +45,61 @@ class DBI():
         data = [d[0] for d in qry]
         return data
 
+    def getRefs(self):
+        """
+        Get dict of config
+        :return: name=value pairs or None
+        """
+        if self.c is None:
+            self.getconn()
+        self.c.execute("SELECT ref FROM processes")
+        qry = self.c.fetchall()
+        data = [d[0] for d in qry]
+        return data
+
     def getDescription(self,caption):
         if self.c is None:
             self.getconn()
         if not isinstance(caption,str):
             raise ValueError('Caption is invalid')
         self.c.execute("SELECT description FROM processes WHERE process=?", (caption,))
-        qry = self.c.fetchall()
-        data = [d[0] for d in qry]
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
         return data
 
+    def getCaption(self,ref):
+        if self.c is None:
+            self.getconn()
+        if not isinstance(ref,str):
+            raise ValueError('Ref is invalid')
+        self.c.execute("SELECT process FROM processes WHERE ref=?", (ref,))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
+
+    def getProcessModule(self,ref):
+        if self.c is None:
+            self.getconn()
+        if not isinstance(ref,str):
+            raise ValueError('Ref is invalid')
+        self.c.execute("SELECT module FROM processes WHERE ref=?", (ref,))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
+
+    def getProcessClass(self,ref):
+        if self.c is None:
+            self.getconn()
+        if not isinstance(ref,str):
+            raise ValueError('Ref is invalid')
+        self.c.execute("SELECT class FROM processes WHERE ref=?", (ref,))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
 
 
 #############################################################################

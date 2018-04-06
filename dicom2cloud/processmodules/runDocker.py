@@ -30,84 +30,85 @@
 import docker
 import tarfile
 import tempfile
+from os.path import join
 import os
 
-client = docker.from_env()
+class DCCDocker():
+    def __init__(self, containername, input,output,outputfile):
+        self.client = docker.from_env()
+        self.CONTAINER_NAME = containername #"ilent2/dicom2cloud"
+        self.INPUT_TARGET = input #"/home/neuro/"
+        self.OUTPUT_FILENAME = outputfile #"output.mnc"
+        self.OUTPUT_TARGET = join(output,outputfile) #"/home/neuro/" + self.OUTPUT_FILENAME
 
-CONTAINER_NAME = "ilent2/dicom2cloud"
+    def startDocker(self,dataSet):
+        """ Start a new docker instance and copy the data into the container.
 
-INPUT_TARGET = "/home/neuro/"
-OUTPUT_FILENAME = "output.mnc"
-OUTPUT_TARGET = "/home/neuro/" + OUTPUT_FILENAME
+        @param dataSet      The folder name that container the input DICOM.
+        @return container   Reference to the created docker container.
+        """
 
-def startDocker(dataSet):
-    """ Start a new docker instance and copy the data into the container.
+        # Check for updates to the docker image
+        self.client.images.pull(self.CONTAINER_NAME)
 
-    @param dataSet      The folder name that container the input DICOM.
-    @return container   Reference to the created docker container.
-    """
+        container = self.client.api.create_container(self.CONTAINER_NAME)
 
-    # Check for updates to the docker image
-    client.images.pull(CONTAINER_NAME)
+        with docker.utils.tar(dataSet) as tar:
+            self.client.api.put_archive(container, self.INPUT_TARGET, tar)
 
-    container = client.api.create_container(CONTAINER_NAME)
+        self.client.api.start(container)
 
-    with docker.utils.tar(dataSet) as tar:
-        client.api.put_archive(container, INPUT_TARGET, tar)
+        return container
 
-    client.api.start(container)
+    def waitUntilDone(self,container):
+        """ Blocks until the docker container has processed the files.
 
-    return container
+        @param container    The container object returned by startDocker.
+        @return jobStatus   Returns 0 if docker ran successfully.
+        """
 
-def waitUntilDone(container):
-    """ Blocks until the docker container has processed the files.
+        return self.client.api.wait(container)
 
-    @param container    The container object returned by startDocker.
-    @return jobStatus   Returns 0 if docker ran successfully.
-    """
+    def checkIfDone(self,container, timeout):
+        """ Checks if the docker has processed the files (non-blocking).
+        To get the jobStatus you will need to call get status.
 
-    return client.api.wait(container)
+        @param container    The container object returned by startDocker.
+        @return done        Returns True if stopped, False if running.
+        """
 
-def checkIfDone(container):
-    """ Checks if the docker has processed the files (non-blocking).
-    To get the jobStatus you will need to call get status.
+        inspect = self.client.api.inspect_container(container['Id'])
+        return inspect['State']['Running'] == False
 
-    @param container    The container object returned by startDocker.
-    @return done        Returns True if stopped, False if running.
-    """
+    def getStatus(self,container):
+        """ Get the status of the docker job.
 
-    inspect = client.api.inspect_container(container['Id'])
-    return inspect['State']['Running'] == False
+        @param container    The container object returned by startDocker.
+        @return jobStatus   Returns 0 if docker ran successfully.
+        """
 
-def getStatus(container):
-    """ Get the status of the docker job.
+        if not self.checkIfDone(container):
+            raise Exception("Container not stopped.")
 
-    @param container    The container object returned by startDocker.
-    @return jobStatus   Returns 0 if docker ran successfully.
-    """
+        inspect = self.client.api.inspect_container(container['Id'])
+        return inspect['State']['ExitCode']
 
-    if not checkIfDone(container):
-        raise Exception("Container not stopped.")
+    def finalizeJob(self,container, outputDir):
+        """ Copy data out of docker and free resources.
 
-    inspect = client.api.inspect_container(container['Id'])
-    return inspect['State']['ExitCode']
+        @param container    The container object returned by startDocker.
+        @param outputDir    Directory name for the output MINC file.
+        @return None
+        """
 
-def finalizeJob(container, outputDir):
-    """ Copy data out of docker and free resources.
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            strm, stat = self.client.api.get_archive(container, self.OUTPUT_TARGET)
 
-    @param container    The container object returned by startDocker.
-    @param outputDir    Directory name for the output MINC file.
-    @return None
-    """
+            for d in strm:
+                tmpfile.write(d)
+            tmpfile.seek(0)
 
-    with tempfile.NamedTemporaryFile() as tmpfile:
-        strm, stat = client.api.get_archive(container, OUTPUT_TARGET)
-
-        for d in strm:
-            tmpfile.write(d)
-        tmpfile.seek(0)
-
-        tar = tarfile.open(fileobj=tmpfile)
-        tar.extractall(path=outputDir)
-        tar.close()
+            tar = tarfile.open(fileobj=tmpfile)
+            tar.extractall(path=outputDir)
+            tar.close()
 
