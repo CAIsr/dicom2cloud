@@ -4,8 +4,8 @@ import sys
 import time
 from glob import iglob
 from hashlib import sha256
-from os import R_OK, mkdir, access, walk
-from os.path import join, isdir, split
+from os import R_OK, W_OK, mkdir, access, walk
+from os.path import join, isdir, split, exists
 
 import pydicom as dicom
 from pydicom.errors import InvalidDicomError
@@ -32,11 +32,13 @@ class HomePanel(WelcomePanel):
         img = wx.Bitmap(1, 1)
         img.LoadFile(join('gui', 'MRI_img.bmp'), wx.BITMAP_TYPE_BMP)
         self.m_richText1.BeginAlignment(wx.TEXT_ALIGNMENT_CENTRE)
-        self.m_richText1.BeginFontSize(14)
-        welcome = "Welcome to the Dicom2Cloud Application"
-        self.m_richText1.WriteText(welcome)
-        self.m_richText1.EndFontSize()
-        self.m_richText1.Newline()
+        # self.m_richText1.BeginFontSize(14)
+        # welcome = "Welcome to the Dicom2Cloud Application"
+        # self.m_richText1.WriteText(welcome)
+        # self.m_richText1.EndFontSize()
+        # self.m_richText1.Newline()
+        self.m_richText1.BeginTextColour(wx.Colour( 255,255,255 ))
+        self.m_richText1.BeginFontSize(12)
         self.m_richText1.WriteText("Process your MRI scans with high performance functions in the cloud")
 
         self.m_richText1.Newline()
@@ -69,6 +71,7 @@ class HomePanel(WelcomePanel):
         # self.m_richText1.AddParagraph(
         #     r"This is free software, you may use/distribute it under the terms of the Apache license v2")
         self.m_richText1.EndAlignment()
+        self.m_richText1.EndTextColour()
 
 
 ########################################################################
@@ -87,12 +90,6 @@ class ProcessRunPanel(ProcessPanel):
         self.toggleval = 0
         self.server = ''
         self.controller = Controller()
-
-    def OnShowDescription(self, event):
-        desc = self.db.getDescription(event.String)
-        self.m_stTitle.SetLabelText(event.String)
-        self.m_stDescription.SetLabelText(desc)
-        self.Layout()
 
     def progressfunc(self, msg):
         """
@@ -159,12 +156,27 @@ class ProcessRunPanel(ProcessPanel):
         print("Cancel multiprocessor")
         event.Skip()
 
+    def OnShowDescription(self, event):
+        desc = self.db.getDescription(event.String)
+        self.m_stTitle.SetLabelText(event.String)
+        self.m_stDescription.SetLabelText(desc)
+        self.Layout()
+        cbtn = event.GetEventObject()
+        if len(cbtn.GetCheckedItems()) > 0:
+            self.m_btnRunProcess.Enable()
+        else:
+            self.m_btnRunProcess.Disable()
+
+
     def OnRunScripts(self, event):
         """
         Run selected scripts sequentially - updating progress bars
         :param e:
         :return:
         """
+        # initialize
+        msg = ''
+        filenames = []
         # Clear processing window
         self.m_dataViewListCtrlRunning.DeleteAllItems()
         # Disable Run button
@@ -172,63 +184,85 @@ class ProcessRunPanel(ProcessPanel):
         btn = event.GetEventObject()
         btn.Disable()
         # Get selected processes
-        selection = self.m_checkListProcess.GetStringSelection()
+        selection = self.m_checkListProcess.GetCheckedItems()
         print("Processes selected: ", selection)
+        # Get Cloud Server
         self.server = self.m_server.GetStringSelection().lower()
-        # Get data from other panels
+        # Get Output directory and File list
         filepanel = self.getFilePanel()
-        msg = ''
-        filenames = []
+        if filepanel.outputdir is not None:
+            targetdir = filepanel.outputdir
+        else:
+            targetdir = join(filepanel.inputdir, 'processed') #check no files will be overwritten by creating subdir
+        if not exists(targetdir):
+            try:
+                mkdir(targetdir)
+            except:
+                msg = 'Cannot create %s' % targetdir
+                raise IOError(msg)
+        elif not access(targetdir,W_OK):
+            msg = "Cannot access directory %s" % targetdir
+            raise IOError(msg)
+
         num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
-        print('All Files:', num_files)
+        print('Selected Files:', num_files)
+
         try:
-            if selection != 'None' and num_files > 0 and filepanel.outputdir is not None and len(
-                    filepanel.outputdir) > 0:
-                self.outputdir = filepanel.outputdir
-                if filepanel.inputdir == self.outputdir:
-                    msg = 'Input and output directories are the same - cannot continue as will overwrite files'
-                    raise ValueError(msg)
-                csvheader = ['Filename', 'Series', 'Process', 'Server']
-                with open(join(self.outputdir, 'dummydatabase.txt'), 'a') as csvfile:
-                    writer = csv.DictWriter(csvfile, fieldnames=csvheader)
-                    writer.writeheader()
+            if len(selection) > 0 and num_files > 0:
+                # Add files to db
+                #
+                # csvheader = ['Filename', 'Series', 'Process', 'Server']
+                # with open(join(self.outputdir, 'dummydatabase.txt'), 'a') as csvfile:
+                #     writer = csv.DictWriter(csvfile, fieldnames=csvheader)
+                #     writer.writeheader()
 
-                    for i in range(0, num_files):
-                        if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                            # for each series, create temp dir and copy files
-                            seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
-                            self.m_stOutputlog.SetLabelText("Copying DICOM data %s ... please wait" % seriesid)
-                            dest = self.copyseries(seriesid)
-
-                            # TODO: Call Docker with series (dest) - then poll
-                            t = DockerThread(self, dest, seriesid, selection, self.server)
-                            t.start()
-                            self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
-                            writer.writerow(
-                                {'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
+                for i in range(0, num_files):
+                    if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
+                        seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
+                        # for each series, create temp dir and copy files
+                        self.m_stOutputlog.SetLabelText("Copying DICOM data %s ... please wait" % seriesid)
+                        dest = self.copyseries(seriesid, targetdir)
+                            #
+                            # # TODO: Call Docker with series (dest) - then poll
+                            # t = DockerThread(self, dest, seriesid, selection, self.server)
+                            # t.start()
+                            # self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
+                            # writer.writerow(
+                            #     {'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
 
             else:
-                if selection == 'None':
+                if len(selection) == 0:
                     msg = "No processes selected"
                 elif filepanel.outputdir is None:  # or len(filepanel.outputdir)<=0:
                     msg = "No outputdir provided"
                 else:
                     msg = "No files selected - please go to Files Panel and add to list"
                 raise ValueError(msg)
-        except ValueError as e:
-            self.Parent.Warn(msg)
-        # Enable Run button
-        self.m_btnRunProcess.Enable()
+        except Exception as e:
+            self.Parent.Warn(e.args[0])
+        finally:
+            # Enable Run button
+            self.m_btnRunProcess.Enable()
 
-    def copyseries(self, seriesnum):
-        if seriesnum in global_series:
-            subdir = self.generateuid(seriesnum)
-            dest = join(self.outputdir, subdir)
-            if not access(dest, R_OK):
+    def copyseries(self, seriesnum, targetdir):
+        """
+        Copy series to temp dir and save location
+        :param self:
+        :param seriesnum:
+        :param targetdir:
+        :return:
+        """
+        suuid = self.generateuid(seriesnum)
+        seriesfiles = self.db.getFiles(suuid)
+        dest = None
+        if seriesfiles is not None and len(seriesfiles) > 0:
+            #subdir = self.generateuid(seriesnum)
+            dest = join(targetdir, suuid)
+            if not exists(dest):
                 mkdir(dest)
-            for f in global_series[seriesnum]['files']:
+            for f in seriesfiles:
                 shutil.copy(f, dest)
-            return dest
+        return dest
 
     def generateuid(self, seriesnum):
         hashed = sha256(seriesnum).hexdigest()
@@ -269,6 +303,8 @@ class FileSelectPanel(FilesPanel):
         self.filedrop = MyFileDropTarget(self, self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
         self.outputdir = ''
+        self.db = DBI()
+        #self.db.getconn()
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -288,6 +324,10 @@ class FileSelectPanel(FilesPanel):
             self.outputdir = str(dlg.GetPath())
             self.txtOutputdir.SetValue(self.outputdir)
         dlg.Destroy()
+
+    def generateuid(self, seriesnum):
+        hashed = sha256(seriesnum).hexdigest()
+        return hashed
 
     def extractSeriesInfo(self, inputdir):
         """
@@ -309,33 +349,47 @@ class FileSelectPanel(FilesPanel):
             # Check DICOM header info
 
             series_num = str(dcm.SeriesInstanceUID)
+            uuid = self.generateuid(series_num)
             imagetype = str(dcm.ImageType[2])
-            dicomdata = {'patientid': str(dcm.PatientID),
+            dicomdata = {'uuid': uuid,
+                         'patientid': str(dcm.PatientID),
                          'patientname': str(dcm.PatientName),
                          'series_num': series_num,
                          'sequence': str(dcm.SequenceName),
                          'protocol': str(dcm.ProtocolName),
                          'imagetype': imagetype
                          }
-            if series_num not in global_series:
-                global_series[series_num] = {'dicomdata': dicomdata, 'files': []}
-            global_series[series_num]['files'].append(filename)
+            self.db.addDicomdata(dicomdata)
+            self.db.addDicomfile(uuid, filename)
+
+            # if series_num not in global_series:
+            #     global_series[series_num] = {'dicomdata': dicomdata, 'files': []}
+            # global_series[series_num]['files'].append(filename)
 
         # Load for selection
-        for s0 in global_series.items():
-            s = s0[1]['dicomdata']
-            numfiles = len(s0[1]['files'])
-
-            # Columns:      Toggle      Select
-            #               Text        PatientID
-            #               Text        Sequence
-            #               Text        Protocol
-            #               Text        Image Type
-            #               Text        Num Files
-            #               Text        Series ID
+        # Columns:      Toggle      Select
+        #               Text        PatientID
+        #               Text        Sequence
+        #               Text        Protocol
+        #               Text        Image Type
+        #               Text        Num Files
+        #               Text        Series ID
+        for suid in self.db.getUuids():
+            numfiles = self.db.getNumberFiles(suid)
             self.m_dataViewListCtrl1.AppendItem(
-                [True, s['patientname'], s['sequence'], s['protocol'],
-                 s['imagetype'], str(numfiles), s['series_num']])
+                [True, self.db.getDicomdata(uuid,'patientname'),
+                 self.db.getDicomdata(uuid,'sequence'),
+                 self.db.getDicomdata(uuid,'protocol'),
+                 self.db.getDicomdata(uuid,'imagetype'), str(numfiles),
+                 self.db.getDicomdata(uuid,'series_num')])
+            # #for s0 in global_series.items():
+            # s = s0[1]['dicomdata']
+            # numfiles = len(s0[1]['files'])
+            #
+            #
+            # self.m_dataViewListCtrl1.AppendItem(
+            #     [True, s['patientname'], s['sequence'], s['protocol'],
+            #      s['imagetype'], str(numfiles), s['series_num']])
 
         # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()

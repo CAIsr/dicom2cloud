@@ -1,13 +1,13 @@
 from __future__ import print_function
 import unittest2 as unittest
-
+from sqlite3 import IntegrityError
 from dicom2cloud.config.dbquery import DBI
 
 
 class TestDBquery(unittest.TestCase):
     def setUp(self):
         self.dbi = DBI()
-        self.dbi.getconn()
+        self.dbi.connect()
 
     def tearDown(self):
         self.dbi.conn.close()
@@ -57,3 +57,99 @@ class TestDBquery(unittest.TestCase):
         print('Class: ', data)
         self.assertIsNotNone(data)
         self.assertGreater(len(data),expected)
+
+    def test_getFiles(self):
+        uuid = 't10000'
+        data = self.dbi.getFiles(uuid)
+        expected = 0
+        print('Files: ', data)
+        self.assertIsNotNone(data)
+        self.assertGreater(len(data), expected)
+
+    def test_getNoFiles(self):
+        uuid = 't10001'
+        data = self.dbi.getFiles(uuid)
+        expected = 0
+        print('Files: ', data)
+        self.assertIsNone(data)
+
+    def test_addDicomdata(self):
+        dicomdata = {'uuid': 't10000',
+                     'patientid': 'p1',
+                     'patientname': 'test patient',
+                     'seriesnum': '1.001.111',
+                     'sequence': 'ftest',
+                     'protocol': 'aaa',
+                     'imagetype': 'M'
+                     }
+        try:
+            rtn = self.dbi.addDicomdata(dicomdata)
+            self.assertEqual(rtn,1,'Dicom data add failed')
+        except IntegrityError as e:
+            self.skipTest(e.args[0])
+
+    def test_addDicomdataExisting(self):
+        dicomdata = {'uuid': 't10000',
+                     'patientid': 'p1',
+                     'patientname': 'test patient',
+                     'seriesnum': '1.001.111',
+                     'sequence': 'ftest',
+                     'protocol': 'aaa',
+                     'imagetype': 'M'
+                     }
+        try:
+            self.assertRaises(IntegrityError, self.dbi.addDicomdata,dicomdata)
+
+        except AssertionError as e:
+            self.skipTest(e.args[0])
+
+    def test_addDicomfileExisting(self):
+        uuid = 't10000'
+        dicomfile="D:\\Projects\\XNAT\\data\\S1\\scans\\3\\1001DS.MR.RESEARCH_16022_OPTIMIZING_EXERCISE.0003.0001.2017.02.24.15.41.05.593750.93525560.IMA"
+        try:
+            self.assertRaises(IntegrityError, self.dbi.addDicomfile,uuid,dicomfile)
+            #self.assertEqual(rtn, 1, 'Dicom file add failed')
+        except AssertionError as e:
+            self.skipTest(e.args[0])
+
+    def test_addDicomfile(self):
+        uuid = 't10000'
+        dicomfile="D:\\Projects\\XNAT\\data\\S1\\scans\\3\\1001DS.MR.RESEARCH_16022_OPTIMIZING_EXERCISE.0003.0001.2017.02.24.15.41.05.593750.93525560.IMA"
+        try:
+            rtn = self.dbi.addDicomfile(uuid,dicomfile)
+            self.assertEqual(rtn, 1, 'Dicom file add failed')
+        except IntegrityError as e:
+            self.skipTest(e.args[0])
+
+    def test_getUuids(self):
+        data = self.dbi.getUuids()
+        expected = 0
+        print('UUIDS: ', data)
+        self.assertIsNotNone(data)
+        self.assertGreater(len(data), expected)
+
+    def test_getNumberFiles(self):
+        uuid = 't10000'
+        data = self.dbi.getNumberFiles(uuid)
+        expected = 0
+        print('Num files: ', data)
+        self.assertIsNotNone(data)
+        self.assertGreater(data, expected)
+
+    def test_getDicomdataAll(self):
+        uuid = 't10000'
+        field = 'all'
+        data = self.dbi.getDicomdata(uuid,field)
+        expected = 0
+        print('Dicomdata for: ', field,'=',data)
+        self.assertIsNotNone(data)
+        self.assertGreater(data, expected)
+
+    def test_getDicomdata(self):
+        uuid = 't10000'
+        field = 'protocol'
+        data = self.dbi.getDicomdata(uuid,field)
+        expected = 0
+        print('Dicomdata for: ', field,'=',data)
+        self.assertIsNotNone(data)
+        self.assertGreater(data, expected)

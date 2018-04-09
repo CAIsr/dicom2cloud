@@ -212,7 +212,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer19 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Run Selected Processes", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Run DICOM Processing", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText85.Wrap( -1 )
 		self.m_staticText85.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
 		
@@ -244,14 +244,12 @@ class ProcessPanel ( wx.Panel ):
 		self.m_server.SetSelection( 0 )
 		bSizer29.Add( self.m_server, 0, wx.ALL, 5 )
 		
-		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN Processing", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
-		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 0, 128, 64 ) )
-		
-		bSizer29.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
-		
 		
 		bSizer20.Add( bSizer29, 1, wx.EXPAND, 5 )
+		
+		self.m_staticText35 = wx.StaticText( self, wx.ID_ANY, u"Select processes", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText35.Wrap( -1 )
+		bSizer20.Add( self.m_staticText35, 0, wx.ALL, 5 )
 		
 		m_checkListProcessChoices = []
 		self.m_checkListProcess = wx.CheckListBox( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_checkListProcessChoices, wx.LB_SINGLE )
@@ -259,6 +257,14 @@ class ProcessPanel ( wx.Panel ):
 		
 		
 		bSizer19.Add( bSizer20, 1, wx.EXPAND, 5 )
+		
+		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN", wx.DefaultPosition, wx.Size( 200,50 ), 0 )
+		self.m_btnRunProcess.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
+		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
+		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 64, 128, 128 ) )
+		self.m_btnRunProcess.Enable( False )
+		
+		bSizer19.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
 		
 		bSizer21 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -283,6 +289,7 @@ class ProcessPanel ( wx.Panel ):
 		self.Layout()
 		
 		# Connect Events
+		self.m_checkListProcess.Bind( wx.EVT_CHECKLISTBOX, self.OnShowDescription )
 		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
 	
 	def __del__( self ):
@@ -290,6 +297,9 @@ class ProcessPanel ( wx.Panel ):
 	
 	
 	# Virtual event handlers, overide them in your derived class
+	def OnShowDescription( self, event ):
+		event.Skip()
+	
 	def OnRunScripts( self, event ):
 		event.Skip()
 	
@@ -364,7 +374,11 @@ class CloudPanel ( wx.Panel ):
 class WelcomePanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
-		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( -1,-1 ), style = wx.TAB_TRAVERSAL )
+		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 688,763 ), style = wx.TAB_TRAVERSAL )
+		
+		self.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 70, 90, 90, False, wx.EmptyString ) )
+		self.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
+		self.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOWTEXT ) )
 		
 		bSizer18 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -378,12 +392,14 @@ class WelcomePanel ( wx.Panel ):
 		bSizer18.Add( self.m_staticline2, 0, wx.EXPAND |wx.ALL, 5 )
 		
 		self.m_richText1 = wx.richtext.RichTextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_READONLY|wx.NO_BORDER|wx.VSCROLL|wx.WANTS_CHARS, wx.DefaultValidator, u"welcome" )
+		self.m_richText1.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_HIGHLIGHTTEXT ) )
+		self.m_richText1.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOWTEXT ) )
+		
 		bSizer18.Add( self.m_richText1, 1, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
 		
 		
 		self.SetSizer( bSizer18 )
 		self.Layout()
-		bSizer18.Fit( self )
 	
 	def __del__( self ):
 		pass
@@ -397,6 +413,9 @@ class FilesPanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
 		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 700,700 ), style = wx.TAB_TRAVERSAL )
+		
+		self.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOWTEXT ) )
+		self.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOW ) )
 		
 		bSizer5 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -429,7 +448,7 @@ class FilesPanel ( wx.Panel ):
 		self.m_button18 = wx.Button( self, wx.ID_ANY, u"Browse", wx.DefaultPosition, wx.DefaultSize, 0 )
 		fgSizer4.Add( self.m_button18, 0, wx.ALL, 5 )
 		
-		self.m_staticText56 = wx.StaticText( self, wx.ID_ANY, u"Upload directory", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText56 = wx.StaticText( self, wx.ID_ANY, u"Output directory", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText56.Wrap( -1 )
 		fgSizer4.Add( self.m_staticText56, 0, wx.ALL, 5 )
 		
@@ -439,12 +458,12 @@ class FilesPanel ( wx.Panel ):
 		self.m_button16 = wx.Button( self, wx.ID_ANY, u"Browse", wx.DefaultPosition, wx.DefaultSize, 0 )
 		fgSizer4.Add( self.m_button16, 0, wx.ALL, 5 )
 		
-		self.m_cbSelectall = wx.CheckBox( self, wx.ID_ANY, u"Select All", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_cbSelectall = wx.CheckBox( self, wx.ID_ANY, u"All Files", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_cbSelectall.SetValue(True) 
-		fgSizer4.Add( self.m_cbSelectall, 0, wx.ALIGN_BOTTOM|wx.ALIGN_CENTER|wx.ALL, 5 )
+		fgSizer4.Add( self.m_cbSelectall, 0, wx.ALL, 5 )
 		
-		self.m_tcDragdrop = wx.TextCtrl( self, wx.ID_ANY, u"Drag data folder here !", wx.DefaultPosition, wx.Size( 200,100 ), wx.TE_CENTRE|wx.TE_READONLY )
-		self.m_tcDragdrop.SetBackgroundColour( wx.Colour( 191, 191, 255 ) )
+		self.m_tcDragdrop = wx.TextCtrl( self, wx.ID_ANY, u"Drag DICOM folder here !", wx.DefaultPosition, wx.Size( 250,100 ), wx.TE_CENTRE|wx.TE_READONLY )
+		self.m_tcDragdrop.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
 		
 		fgSizer4.Add( self.m_tcDragdrop, 0, wx.ALIGN_CENTER, 5 )
 		

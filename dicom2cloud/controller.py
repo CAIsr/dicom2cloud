@@ -70,33 +70,43 @@ class ProcessThread(threading.Thread):
         self.processname = processname
         self.targetdir = targetdir
         self.seriesid = seriesid
+        self.outputfile = 'output.mnc'
+        self.containername = containername
+        self.filenames = filenames
         self.server = server
-        self.dcc = DCCDocker(containername, filenames, targetdir, outputfile)
+        self.row = row
+        # Dynamic process module
+        (self.module_name, self.class_name) = processmodule
 
     # ----------------------------------------------------------------------
     def run(self):
         i = 0
         try:
-            # event.set()
-            # lock.acquire(True)
-            # Do work
-            (container, timeout)  = self.dcc.startDocker(self.targetdir)
+            event.set()
+            lock.acquire(True)
+            # Load processing class
+            # Instantiate module
+            module = importlib.import_module(self.module_name)
+            class_ = getattr(module, self.class_name)
+            dcc = class_(self.containername, self.filenames, self.targetdir, self.seriesid)
+            #self.dcc = DCCDocker(containername, filenames, targetdir, seriesid)
+            (container, timeout) = dcc.startDocker(self.targetdir)
             ctr = 0
             print "Started"
-            while (not self.dcc.checkIfDone(container, timeout)):
+            while (not dcc.checkIfDone(container, timeout)):
                 time.sleep(5)
                 wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
                 ctr = 1
 
             # Check that everything ran ok
-            if self.dcc.getStatus(container) != 0:
+            if dcc.getStatus(container) != 0:
                 raise Exception("There was an error while anonomizing the dataset.")
 
             # Get the resulting mnc file back to the original directory
-            self.dcc.finalizeJob(container, self.targetdir)
+            dcc.finalizeJob(container, self.targetdir)
 
             # Upload MNC to server
-            mncfile = join(self.targetdir, 'output.mnc')
+            mncfile = join(self.targetdir, self.outputfile)
             uploadfile = join(self.targetdir, self.seriesid + '.mnc')
             if access(mncfile, R_OK):
                 shutil.copyfile(mncfile, uploadfile)
@@ -112,10 +122,10 @@ class ProcessThread(threading.Thread):
 
         finally:
             wx.PostEvent(self.wxObject, ResultEvent((10, self.seriesid, self.processname)))
-            # logger.info('Finished FilterThread')
+            logger.info('Finished ProcessThread')
             # self.terminate()
-            # lock.release()
-            # event.clear()
+            lock.release()
+            event.clear()
 
 ################################################################################################
 class Controller():
