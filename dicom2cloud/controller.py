@@ -133,7 +133,7 @@ class Controller():
         self.logger = self.__loadLogger()
         self.db = DBI()
         if self.db.c is None:
-            self.db.getconn()
+            self.db.connect()
         self.cmodules = self.__loadProcesses()
 
     def __loadProcesses(self):

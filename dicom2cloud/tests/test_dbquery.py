@@ -1,13 +1,27 @@
 from __future__ import print_function
-import unittest2 as unittest
-from sqlite3 import IntegrityError
+import unittest2 # as unittest
+import sys
+from sqlite3 import IntegrityError, OperationalError
 from dicom2cloud.config.dbquery import DBI
 
 
-class TestDBquery(unittest.TestCase):
+class TestDBquery(unittest2.TestCase):
     def setUp(self):
         self.dbi = DBI()
         self.dbi.connect()
+        # try:
+        #     self.deleteData()
+        # except OperationalError as e:
+        #     print(e.args[0])
+        #     self.tearDown()
+
+
+    def deleteData(self):
+        # Reset all data so tests will work - so only use with a test db
+        self.dbi.deleteData('seriesprocess')
+        self.dbi.deleteData('dicomfiles')
+        self.dbi.deleteData('dicomdata')
+
 
     def tearDown(self):
         self.dbi.conn.close()
@@ -82,11 +96,16 @@ class TestDBquery(unittest.TestCase):
                      'protocol': 'aaa',
                      'imagetype': 'M'
                      }
+
         try:
             rtn = self.dbi.addDicomdata(dicomdata)
             self.assertEqual(rtn,1,'Dicom data add failed')
         except IntegrityError as e:
             self.skipTest(e.args[0])
+
+    def test_hasUuid(self):
+        uuid='t10000'
+        self.assertIs(self.dbi.hasUuid(uuid), True,'Data already added')
 
     def test_addDicomdataExisting(self):
         dicomdata = {'uuid': 't10000',

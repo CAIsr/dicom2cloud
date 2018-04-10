@@ -26,7 +26,7 @@ class DBI():
 
         self.c = None
 
-    def __validstring(self,ref):
+    def validstring(self,ref):
         if not isinstance(ref,str) and not isinstance(ref,unicode):
             raise ValueError('Ref is not valid string')
         return ref
@@ -37,6 +37,19 @@ class DBI():
 
     def closeconn(self):
         self.conn.close()
+
+    def deleteData(self,table):
+        """
+        TODO: This is causing database locking ??
+        :param table:
+        :return:
+        """
+        if self.c is None:
+            self.connect()
+        self.c.execute('DELETE FROM `' + table + '`')
+        print('Table data deleted: ', table)
+        self.conn.close()
+
 
     def getCaptions(self):
         """
@@ -65,7 +78,7 @@ class DBI():
     def getDescription(self,caption):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT description FROM processes WHERE process=?", (self.__validstring(caption),))
+        self.c.execute("SELECT description FROM processes WHERE process=?", (self.validstring(caption),))
         data = self.c.fetchone()
         if data is not None:
             data = data[0]
@@ -74,7 +87,7 @@ class DBI():
     def getCaption(self,ref):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT process FROM processes WHERE ref=?", (self.__validstring(ref),))
+        self.c.execute("SELECT process FROM processes WHERE ref=?", (self.validstring(ref),))
         data = self.c.fetchone()
         if data is not None:
             data = data[0]
@@ -83,7 +96,7 @@ class DBI():
     def getProcessModule(self,ref):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT module FROM processes WHERE ref=?", (self.__validstring(ref),))
+        self.c.execute("SELECT module FROM processes WHERE ref=?", (self.validstring(ref),))
         data = self.c.fetchone()
         if data is not None:
             data = data[0]
@@ -92,7 +105,7 @@ class DBI():
     def getProcessClass(self,ref):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT class FROM processes WHERE ref=?", (self.__validstring(ref),))
+        self.c.execute("SELECT class FROM processes WHERE ref=?", (self.validstring(ref),))
         data = self.c.fetchone()
         if data is not None:
             data = data[0]
@@ -101,10 +114,10 @@ class DBI():
     def getFiles(self,uuid):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT filename FROM dicomfiles WHERE uuid=?", (self.__validstring(uuid),))
-        data = self.c.fetchone()
+        self.c.execute("SELECT filename FROM dicomfiles WHERE uuid=?", (self.validstring(uuid),))
+        data = self.c.fetchall()
         if data is not None:
-            data = data[0]
+            data = [d[0] for d in data]
         return data
 
     def addDicomdata(self,dicomdata):
@@ -123,22 +136,32 @@ class DBI():
             rtn = 1
         else:
             self.conn.rollback()
-            print('Dicomdata not dict')
+            print('Invalid data for Dicomdata')
             rtn = 0
         return rtn
             
     def addDicomfile(self,uuid,dicomfile):
         if self.c is None:
             self.connect()
-        if self.__validstring(uuid) and isfile(dicomfile):
+        if self.validstring(uuid) and isfile(dicomfile):
             self.c.execute("INSERT INTO dicomfiles (filename,uuid) VALUES(?,?)", (dicomfile,uuid))
             self.conn.commit()
             print('Dicomfile loaded: ', dicomfile)
             rtn = 1
         else:
             self.conn.rollback()
-            print('Dicomfile not loaded')
+            print('Invalid data for Dicomfile')
             rtn = 0
+        return rtn
+
+    def hasFile(self,uuid,dicomfile):
+        rtn = False
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT COUNT(*) FROM dicomfiles WHERE filename=? AND uuid=?", (dicomfile,uuid))
+        data = self.c.fetchone()
+        if data is not None and data[0] > 0:
+            rtn = True
         return rtn
             
     def getUuids(self):
@@ -149,10 +172,20 @@ class DBI():
         data = [d[0] for d in qry]
         return data
 
+    def hasUuid(self,uuid):
+        rtn = False
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT COUNT(*) FROM dicomdata WHERE uuid=?", (self.validstring(uuid),))
+        data = self.c.fetchone()
+        if data is not None and data[0] > 0:
+            rtn = True
+        return rtn
+
     def getNumberFiles(self,uuid):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT COUNT(*) FROM dicomfiles WHERE uuid=?", (self.__validstring(uuid),))
+        self.c.execute("SELECT COUNT(*) FROM dicomfiles WHERE uuid=?", (self.validstring(uuid),))
         data = self.c.fetchone()
         if data is not None:
             data = data[0]
@@ -161,8 +194,8 @@ class DBI():
     def getDicomdata(self,uuid,fieldname):
         if self.c is None:
             self.connect()
-        if not self.__validstring(fieldname) or fieldname == 'all':
-            self.c.execute("SELECT uuid,patientid,patientname,seriesnum,sequence,protocol,imagetype FROM dicomdata WHERE uuid=?", (self.__validstring(uuid),))
+        if not self.validstring(fieldname) or fieldname == 'all':
+            self.c.execute("SELECT uuid,patientid,patientname,seriesnum,sequence,protocol,imagetype FROM dicomdata WHERE uuid=?", (self.validstring(uuid),))
             data = self.c.fetchall()
             if data is not None:
                 data = {'uuid': data[0][0],
@@ -173,7 +206,7 @@ class DBI():
                            'protocol': data[0][5],
                            'imagetype': data[0][6]}
         else:
-            self.c.execute("SELECT " + fieldname + " FROM dicomdata WHERE uuid=?", (self.__validstring(uuid),))
+            self.c.execute("SELECT " + fieldname + " FROM dicomdata WHERE uuid=?", (self.validstring(uuid),))
             data = self.c.fetchall()
             if data is not None:
                 data = data[0][0]
