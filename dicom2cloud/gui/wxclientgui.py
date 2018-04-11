@@ -212,7 +212,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer19 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Run DICOM Processing", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Upload DICOMs to Cloud", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText85.Wrap( -1 )
 		self.m_staticText85.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
 		
@@ -258,13 +258,21 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer19.Add( bSizer20, 1, wx.EXPAND, 5 )
 		
+		bSizer11 = wx.BoxSizer( wx.HORIZONTAL )
+		
 		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN", wx.DefaultPosition, wx.Size( 200,50 ), 0 )
 		self.m_btnRunProcess.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
 		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
 		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 64, 128, 128 ) )
 		self.m_btnRunProcess.Enable( False )
 		
-		bSizer19.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
+		bSizer11.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
+		
+		self.m_btnLog = wx.Button( self, wx.ID_ANY, u"View Log file", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer11.Add( self.m_btnLog, 0, wx.ALL, 5 )
+		
+		
+		bSizer19.Add( bSizer11, 1, wx.EXPAND, 5 )
 		
 		bSizer21 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -291,6 +299,7 @@ class ProcessPanel ( wx.Panel ):
 		# Connect Events
 		self.m_checkListProcess.Bind( wx.EVT_CHECKLISTBOX, self.OnShowDescription )
 		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
+		self.m_btnLog.Bind( wx.EVT_BUTTON, self.OnShowLog )
 	
 	def __del__( self ):
 		pass
@@ -301,6 +310,9 @@ class ProcessPanel ( wx.Panel ):
 		event.Skip()
 	
 	def OnRunScripts( self, event ):
+		event.Skip()
+	
+	def OnShowLog( self, event ):
 		event.Skip()
 	
 
@@ -330,9 +342,6 @@ class CloudPanel ( wx.Panel ):
 		
 		bSizer1.Add( self.m_staticText58, 0, wx.ALL|wx.EXPAND, 5 )
 		
-		self.m_tcResults = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 500,400 ), wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP|wx.SIMPLE_BORDER|wx.VSCROLL )
-		bSizer1.Add( self.m_tcResults, 0, wx.ALIGN_CENTER|wx.ALL|wx.EXPAND, 5 )
-		
 		bSizer16 = wx.BoxSizer( wx.HORIZONTAL )
 		
 		self.m_btnCompareRun = wx.Button( self, wx.ID_ANY, u"Update", wx.DefaultPosition, wx.Size( -1,-1 ), 0 )
@@ -346,6 +355,15 @@ class CloudPanel ( wx.Panel ):
 		
 		
 		bSizer1.Add( bSizer16, 1, wx.EXPAND, 5 )
+		
+		self.m_dataViewListCtrlCloud = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE|wx.VSCROLL )
+		self.m_dataViewListCtrlCloud.SetMinSize( wx.Size( 650,500 ) )
+		
+		self.m_columnSeries = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Series ID" )
+		self.m_columnProcess = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Process" )
+		self.m_columnStatus = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Status" )
+		self.m_columnTime = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Time elapsed" )
+		bSizer1.Add( self.m_dataViewListCtrlCloud, 0, wx.ALL, 5 )
 		
 		
 		self.SetSizer( bSizer1 )
@@ -519,6 +537,52 @@ class FilesPanel ( wx.Panel ):
 		event.Skip()
 	
 	def OnClearlist( self, event ):
+		event.Skip()
+	
+
+###########################################################################
+## Class dlgLogViewer
+###########################################################################
+
+class dlgLogViewer ( wx.Dialog ):
+	
+	def __init__( self, parent ):
+		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Log Viewer", pos = wx.DefaultPosition, size = wx.DefaultSize, style = wx.DEFAULT_DIALOG_STYLE )
+		
+		self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
+		
+		bSizer12 = wx.BoxSizer( wx.VERTICAL )
+		
+		self.m_staticText35 = wx.StaticText( self, wx.ID_ANY, u"Processing Log", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText35.Wrap( -1 )
+		self.m_staticText35.SetFont( wx.Font( 12, 70, 90, 92, False, wx.EmptyString ) )
+		
+		bSizer12.Add( self.m_staticText35, 0, wx.ALL, 5 )
+		
+		self.m_textLog = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_WORDWRAP )
+		self.m_textLog.SetMinSize( wx.Size( 400,500 ) )
+		
+		bSizer12.Add( self.m_textLog, 0, wx.ALL, 5 )
+		
+		self.m_btnRefresh = wx.Button( self, wx.ID_ANY, u"Refresh", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer12.Add( self.m_btnRefresh, 0, wx.ALL, 5 )
+		
+		
+		self.SetSizer( bSizer12 )
+		self.Layout()
+		bSizer12.Fit( self )
+		
+		self.Centre( wx.BOTH )
+		
+		# Connect Events
+		self.m_btnRefresh.Bind( wx.EVT_BUTTON, self.OnLogRefresh )
+	
+	def __del__( self ):
+		pass
+	
+	
+	# Virtual event handlers, overide them in your derived class
+	def OnLogRefresh( self, event ):
 		event.Skip()
 	
 

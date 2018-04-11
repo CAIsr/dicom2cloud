@@ -34,12 +34,11 @@ from os.path import join
 import os
 
 class DCCDocker():
-    def __init__(self, containername, input,output,outputfile):
+    def __init__(self, containername, input,output):
         self.client = docker.from_env()
         self.CONTAINER_NAME = containername #"ilent2/dicom2cloud"
         self.INPUT_TARGET = input #"/home/neuro/"
-        self.OUTPUT_FILENAME = outputfile #"output.mnc"
-        self.OUTPUT_TARGET = join(output,outputfile) #"/home/neuro/" + self.OUTPUT_FILENAME
+        self.OUTPUT_TARGET = output #"/home/neuro/" + self.OUTPUT_FILENAME
 
     def startDocker(self,dataSet):
         """ Start a new docker instance and copy the data into the container.

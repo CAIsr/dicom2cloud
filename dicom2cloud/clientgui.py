@@ -1,3 +1,4 @@
+from __future__ import print_function
 import csv
 import shutil
 import sys
@@ -6,7 +7,7 @@ from glob import iglob
 from hashlib import sha256
 from os import R_OK, W_OK, mkdir, access, walk
 from os.path import join, isdir, split, exists, basename
-
+import datetime
 import pydicom as dicom
 from pydicom.errors import InvalidDicomError
 
@@ -72,222 +73,6 @@ class HomePanel(WelcomePanel):
         #     r"This is free software, you may use/distribute it under the terms of the Apache license v2")
         self.m_richText1.EndAlignment()
         self.m_richText1.EndTextColour()
-
-
-########################################################################
-class ProcessRunPanel(ProcessPanel):
-    def __init__(self, parent):
-        super(ProcessRunPanel, self).__init__(parent)
-        # Set up event handler for any worker thread results
-        EVT_RESULT(self, self.progressfunc)
-        # EVT_CANCEL(self, self.stopfunc)
-        # Set timer handler
-        self.start = {}
-        self.toggleval = 0
-        #self.server = ''
-        self.controller = Controller()
-        choices = self.controller.db.getCaptions()
-        self.m_checkListProcess.AppendItems(choices)
-
-    def progressfunc(self, msg):
-        """
-        Update progress bars in table - multithreaded
-        :param count:
-        :param row:
-        :param col:
-        :return:
-        """
-        (count, seriesid, process) = msg.data
-        print("\nProgress updated: ", time.ctime())
-        print('count = ', count)
-        row = 0
-        for item in range(self.m_dataViewListCtrlRunning.GetItemCount()):
-            if self.m_dataViewListCtrlRunning.GetValue(row=item, col=1) == seriesid:
-                row = item
-
-        status = ''
-        if count == 0:
-            self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
-            self.start[seriesid] = time.time()
-        elif count < 0:
-            self.m_dataViewListCtrlRunning.SetValue("ERROR", row=row, col=3)
-            self.m_btnRunProcess.Enable()
-        elif count == 1:
-            if self.toggleval == 25:
-                self.toggleval = 75
-            else:
-                self.toggleval = 25
-            self.m_dataViewListCtrlRunning.SetValue("Running", row=row, col=3)
-            self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
-        elif count == 2:
-            self.m_dataViewListCtrlRunning.SetValue("Uploading", row=row, col=3)
-            self.m_dataViewListCtrlRunning.SetValue(75, row=row, col=2)
-        else:
-            if seriesid in self.start:
-                endtime = time.time() - self.start[seriesid]
-                status = "(%d secs)" % endtime
-            print(status)
-            self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
-            self.m_dataViewListCtrlRunning.SetValue("Uploaded " + status, row=row, col=3)
-            self.m_btnRunProcess.Enable()
-
-    def getFilePanel(self):
-        """
-        Get access to filepanel
-        :return:
-        """
-        filepanel = None
-
-        for fp in self.Parent.Children:
-            if isinstance(fp, FileSelectPanel):
-                filepanel = fp
-                break
-        return filepanel
-
-    def OnCancelScripts(self, event):
-        """
-        Find a way to stop processes
-        :param event:
-        :return:
-        """
-        self.shutdown()
-        print("Cancel multiprocessor")
-        event.Skip()
-
-    def OnShowDescription(self, event):
-        desc = self.controller.db.getDescription(event.String)
-        self.m_stTitle.SetLabelText(event.String)
-        self.m_stDescription.SetLabelText(desc)
-        self.Layout()
-        cbtn = event.GetEventObject()
-        if len(cbtn.GetCheckedItems()) > 0:
-            self.m_btnRunProcess.Enable()
-        else:
-            self.m_btnRunProcess.Disable()
-
-
-    def OnRunScripts(self, event):
-        """
-        Run selected scripts sequentially - updating progress bars
-        :param e:
-        :return:
-        """
-        # initialize
-        msg = ''
-        filenames = []
-        # Clear processing window
-        self.m_dataViewListCtrlRunning.DeleteAllItems()
-        # Disable Run button
-        # self.m_btnRunProcess.Disable()
-        btn = event.GetEventObject()
-        btn.Disable()
-        # Get selected processes
-        processes = self.m_checkListProcess.GetCheckedStrings()
-        print("Processes selected: ", processes)
-        # Get Cloud Server
-        server = self.m_server.GetStringSelection().lower()
-        # Get Output directory and File list
-        filepanel = self.getFilePanel()
-        if filepanel.outputdir is not None:
-            targetdir = filepanel.outputdir
-        else:
-            targetdir = join(filepanel.inputdir, 'processed') #check no files will be overwritten by creating subdir
-        if not exists(targetdir):
-            try:
-                mkdir(targetdir)
-            except:
-                msg = 'Cannot create %s' % targetdir
-                raise IOError(msg)
-        elif not access(targetdir,W_OK):
-            msg = "Cannot access directory %s" % targetdir
-            raise IOError(msg)
-
-        num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
-        print('Selected Series:', num_files)
-
-        try:
-            if len(processes) > 0 and num_files > 0:
-                # Add files to db
-                #
-                # csvheader = ['Filename', 'Series', 'Process', 'Server']
-                # with open(join(self.outputdir, 'dummydatabase.txt'), 'a') as csvfile:
-                #     writer = csv.DictWriter(csvfile, fieldnames=csvheader)
-                #     writer.writeheader()
-
-                # for i in range(0, num_files):
-                #     if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                #         seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
-                #         # for each series, create temp dir and copy files
-                #         self.m_stOutputlog.SetLabelText("Copying DICOM data %s ... please wait" % seriesid)
-                #         (dest,uuid) = self.copyseries(seriesid, targetdir)
-
-                # For each process, own thread per fileset
-                row = 0
-                for p in processes:
-                    for i in range(0, num_files):
-                        if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
-                            seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
-                            # for each series, create temp dir and copy files
-                            self.m_stOutputlog.SetLabelText("Copying DICOM data %s ... please wait" % seriesid)
-                            uuid = self.generateuid(seriesid)
-                            if self.copyseries(uuid, targetdir):
-                                self.m_stOutputlog.SetLabelText("Process thread started %s ... please wait" % seriesid)
-                                self.controller.RunProcess(self, targetdir, seriesid, p, server, row)
-                                row = row + 1
-                            #
-                            # # TODO: Call Docker with series (dest) - then poll
-                            # t = DockerThread(self, dest, seriesid, selection, self.server)
-                            # t.start()
-                            # self.m_stOutputlog.SetLabelText("Docker thread started %s ... please wait" % seriesid)
-                            # writer.writerow(
-                            #     {'Filename': dest, 'Series': seriesid, 'Process': selection, 'Server': self.server})
-
-            else:
-                if len(processes) == 0:
-                    msg = "No processes selected"
-                elif filepanel.outputdir is None:  # or len(filepanel.outputdir)<=0:
-                    msg = "No outputdir provided"
-                else:
-                    msg = "No files selected - please go to Files Panel and add to list"
-                raise ValueError(msg)
-        except Exception as e:
-            self.Parent.Warn(e.args[0])
-        finally:
-            # Enable Run button
-            self.m_btnRunProcess.Enable()
-
-    def copyseries(self, suuid, targetdir):
-        """
-        Copy series to temp dir if doesn't exist and save location
-        :param self:
-        :param seriesnum:
-        :param targetdir:
-        :return: False if no files to copy or destination folder with copied files
-        """
-        seriesfiles = self.controller.db.getFiles(suuid)
-        dest = False
-        if seriesfiles is not None and len(seriesfiles) > 0:
-            #subdir = self.generateuid(seriesnum)
-            dest = join(targetdir, suuid)
-            if not exists(dest):
-                mkdir(dest)
-            for f in seriesfiles:
-                if not exists(join(dest,basename(f))):
-                    shutil.copy(f, dest)
-        return dest
-
-    def generateuid(self, seriesnum):
-        hashed = sha256(seriesnum).hexdigest()
-        return hashed
-
-    def checkhashed(self, seriesnum, hashed):
-        if hashed == sha256(seriesnum).hexdigest():
-            print("It Matches!")
-            return True
-        else:
-            print("It Does not Match")
-            return False
-
 
 ########################################################################
 
@@ -376,10 +161,6 @@ class FileSelectPanel(FilesPanel):
             if not self.db.hasFile(uuid,filename):
                 self.db.addDicomfile(uuid, filename)
 
-            # if series_num not in global_series:
-            #     global_series[series_num] = {'dicomdata': dicomdata, 'files': []}
-            # global_series[series_num]['files'].append(filename)
-
         # Load for selection
         # Columns:      Toggle      Select
         #               Text        PatientID
@@ -389,23 +170,15 @@ class FileSelectPanel(FilesPanel):
         #               Text        Num Files
         #               Text        Series ID
         for suid in self.db.getUuids():
+            print('From db get suid:', suid)
             numfiles = self.db.getNumberFiles(suid)
             self.m_dataViewListCtrl1.AppendItem(
-                [True, self.db.getDicomdata(uuid,'patientname'),
-                 self.db.getDicomdata(uuid,'sequence'),
-                 self.db.getDicomdata(uuid,'protocol'),
-                 self.db.getDicomdata(uuid,'imagetype'), str(numfiles),
-                 self.db.getDicomdata(uuid,'seriesnum')])
-            # #for s0 in global_series.items():
-            # s = s0[1]['dicomdata']
-            # numfiles = len(s0[1]['files'])
-            #
-            #
-            # self.m_dataViewListCtrl1.AppendItem(
-            #     [True, s['patientname'], s['sequence'], s['protocol'],
-            #      s['imagetype'], str(numfiles), s['series_num']])
+                [True, self.db.getDicomdata(suid,'patientname'),
+                 self.db.getDicomdata(suid,'sequence'),
+                 self.db.getDicomdata(suid,'protocol'),
+                 self.db.getDicomdata(suid,'imagetype'), str(numfiles),
+                 self.db.getDicomdata(suid,'seriesnum')])
 
-        # self.col_file.SetMinWidth(wx.LIST_AUTOSIZE)
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
         self.m_status.SetLabelText(msg)
 
@@ -419,41 +192,59 @@ class FileSelectPanel(FilesPanel):
         self.m_dataViewListCtrl1.DeleteAllItems()
 
 ########################################################################
-class CloudRunPanel(CloudPanel):
+class ProcessRunPanel(ProcessPanel):
     def __init__(self, parent):
-        super(CloudRunPanel, self).__init__(parent)
+        super(ProcessRunPanel, self).__init__(parent)
+        # Set up event handler for any worker thread results
+        EVT_RESULT(self, self.progressfunc)
+        # EVT_CANCEL(self, self.stopfunc)
+        # Set timer handler
+        self.start = {}
+        self.toggleval = 0
+        # self.server = ''
+        self.controller = Controller()
+        choices = self.controller.db.getCaptions()
+        self.m_checkListProcess.AppendItems(choices)
 
-    def OnUpdate(self, event):
+    def progressfunc(self, msg):
         """
-        Load dummydatabase and for each seriesID - poll class
-        :param event:
+        Update progress bars in table - multithreaded
+        :param count:
+        :param row:
+        :param col:
         :return:
         """
-        filepanel = self.getFilePanel()
-        self.outputdir = filepanel.outputdir
-        dbfile = join(self.outputdir, 'dummydatabase.txt')
-        csvheader = ['Filename', 'Series', 'Process', 'Server']
+        (row, count, seriesid, process,statusmessage) = msg.data
+        print("\nProgress updated: ", time.ctime())
+        print('\tPROGRESS: count = ', count, " row=", row)
+        # row = 0
+        for item in range(self.m_dataViewListCtrlRunning.GetItemCount()):
+            if self.m_dataViewListCtrlRunning.GetValue(row=item, col=1) == seriesid:
+                row = item
 
-        self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
-        with open(dbfile) as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                print(row['Filename'], row['Server'])
-                seriesid = split(row['Filename'])[1]
-                server = row['Server'].lower()
-                # Get uploader class and query
-                uploaderClass = get_class(server)
-                uploader = uploaderClass(seriesid)
-                done = uploader.isDone()
-                if done:
-                    uploader.download(join(self.outputdir, seriesid, 'download.tar'))
-                    msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (
-                        seriesid, join(self.outputdir, seriesid, 'download.tar'))
-
-                else:
-                    msg = 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
-                self.m_tcResults.AppendText(msg)
-        print('Finished cloud panel update')
+        status = ''
+        if count == 0:
+            self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
+            self.start[seriesid] = time.time()
+        elif count < 0:
+            if len(statusmessage)<=0:
+                statusmessage = "Unknown"
+            self.m_dataViewListCtrlRunning.SetValue("ERROR:" + statusmessage, row=row, col=3)
+            self.m_btnRunProcess.Enable()
+            self.m_stOutputlog.SetLabelText(statusmessage)
+        elif count < 100:
+            if len(statusmessage)<=0:
+                statusmessage = "Running"
+            self.m_dataViewListCtrlRunning.SetValue(statusmessage, row=row, col=3)
+            self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
+        else:
+            if seriesid in self.start:
+                endtime = time.time() - self.start[seriesid]
+                status = "(%d secs)" % endtime
+            print(status)
+            self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
+            self.m_dataViewListCtrlRunning.SetValue("Done " + status, row=row, col=3)
+            self.m_btnRunProcess.Enable()
 
     def getFilePanel(self):
         """
@@ -468,13 +259,222 @@ class CloudRunPanel(CloudPanel):
                 break
         return filepanel
 
+    def OnCancelScripts(self, event):
+        """
+        Find a way to stop processes
+        :param event:
+        :return:
+        """
+        #self.shutdown()
+        print("Cancel multiprocessor")
+        event.Skip()
+
+    def OnShowDescription(self, event):
+        desc = self.controller.db.getDescription(event.String)
+        self.m_stTitle.SetLabelText(event.String)
+        self.m_stDescription.SetLabelText(desc)
+        self.Layout()
+        cbtn = event.GetEventObject()
+        if len(cbtn.GetCheckedItems()) > 0:
+            self.m_btnRunProcess.Enable()
+        else:
+            self.m_btnRunProcess.Disable()
+
+    def OnRunScripts(self, event):
+        """
+        Run selected scripts sequentially - updating progress bars
+        :param e:
+        :return:
+        """
+        # initialize
+        msg = ''
+        filenames = []
+        # Clear processing window
+        self.m_dataViewListCtrlRunning.DeleteAllItems()
+        # Disable Run button
+        # self.m_btnRunProcess.Disable()
+        btn = event.GetEventObject()
+        btn.Disable()
+        # Get selected processes
+        processes = self.m_checkListProcess.GetCheckedStrings()
+        print("Processes selected: ", processes)
+        # Get Cloud Server
+        server = self.m_server.GetStringSelection().lower()
+        # Get Output directory and File list
+        filepanel = self.getFilePanel()
+        try:
+            if filepanel.outputdir is not None and len(filepanel.outputdir) > 0:
+                targetdir = filepanel.outputdir
+            else:
+                targetdir = join(filepanel.inputdir,'processed')  # check no files will be overwritten by creating subdir
+                msg = "No outputdir provided - using subdir: %s" % targetdir
+                print(msg)
+            if not exists(targetdir):
+                try:
+                    mkdir(targetdir)
+                except:
+                    msg = 'Cannot create %s' % targetdir
+                    raise IOError(msg)
+            elif not access(targetdir, W_OK):
+                msg = "Cannot access directory %s" % targetdir
+                raise IOError(msg)
+
+            num_files = filepanel.m_dataViewListCtrl1.GetItemCount()
+            print('Selected Series:', num_files)
+
+            if len(processes) > 0 and num_files > 0:
+                # For each process, own thread per fileset
+                row = 0
+                for p in processes:
+                    for i in range(0, num_files):
+                        if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
+                            seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
+                            # for each series, create temp dir and copy files
+                            self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
+                            uuid = self.generateuid(seriesid)
+                            if self.copyseries(uuid, targetdir):
+                                self.m_stOutputlog.SetLabelText("Uploading %s" % seriesid)
+                                self.controller.RunProcess(self, targetdir, uuid, p, server, row)
+                                row = row + 1
+
+            else:
+                if len(processes) == 0:
+                    msg = "No processes selected"
+                else:
+                    msg = "No files selected - please go to Files Panel and add to list"
+                raise ValueError(msg)
+        except Exception as e:
+            self.Parent.Warn(e.args[0])
+        finally:
+            self.m_stOutputlog.SetLabelText("** Uploads finished **")
+            # Enable Run button
+            self.m_btnRunProcess.Enable()
+
+    def OnShowLog(self, event):
+        """
+        Load logfile into viewer
+        :param event:
+        :return:
+        """
+        dlg = LogViewer(self)
+        dlg.OnLogRefresh(event)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def copyseries(self, suuid, targetdir):
+        """
+        Copy series to temp dir if doesn't exist and save location
+        :param self:
+        :param suuid: series uuid
+        :param targetdir:
+        :return: False if no files to copy or destination folder with copied files
+        """
+        seriesfiles = self.controller.db.getFiles(suuid)
+        dest = False
+        if seriesfiles is not None and len(seriesfiles) > 0:
+            dest = join(targetdir, suuid)
+            if not exists(dest):
+                mkdir(dest)
+            for f in seriesfiles:
+                if not exists(join(dest, basename(f))):
+                    shutil.copy(f, dest)
+        return dest
+
+    def generateuid(self, seriesnum):
+        hashed = sha256(seriesnum).hexdigest()
+        return hashed
+
+    def checkhashed(self, seriesnum, hashed):
+        if hashed == sha256(seriesnum).hexdigest():
+            print("It Matches!")
+            return True
+        else:
+            print("It Does not Match")
+            return False
+
+#########################################################################
+class LogViewer(dlgLogViewer):
+    def __init__(self,parent):
+        super(LogViewer, self).__init__(parent)
+        self.logfile = parent.controller.logfile
+
+    def OnLogRefresh(self,event):
+        self.m_textLog.LoadFile(self.logfile)
+
+
+########################################################################
+class CloudRunPanel(CloudPanel):
+    def __init__(self, parent):
+        super(CloudRunPanel, self).__init__(parent)
+        self.controller = Controller()
+
+    def getStatus(self,code):
+        status = {0: 'Failed', 1: 'In progress', 2: 'Complete'}
+        return status[code]
+
+    def checkRemote(self,seriesid):
+        #TODO: Check if files are done and update database
+        # self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
+        # with open(dbfile) as csvfile:
+        #     reader = csv.DictReader(csvfile)
+        #     for row in reader:
+        #         print(row['Filename'], row['Server'])
+        #         seriesid = split(row['Filename'])[1]
+        #         server = row['Server'].lower()
+        #         # Get uploader class and query
+        #         uploaderClass = get_class(server)
+        #         uploader = uploaderClass(seriesid)
+        #         done = uploader.isDone()
+        #         if done:
+        #             uploader.download(join(self.outputdir, seriesid, 'download.tar'))
+        #             msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (
+        #                 seriesid, join(self.outputdir, seriesid, 'download.tar'))
+        #
+        #         else:
+        #             msg = 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
+        #         self.m_tcResults.AppendText(msg)
+        pass
+    def OnUpdate(self, event):
+        """
+        Load dummydatabase and for each seriesID - poll class
+        :param event:
+        :return:
+        """
+        # Check remote - TODO
+        # Query database for status of processing
+        #2018-04-11 13:25:56.914000
+        seriesprocesses = self.controller.db.getActiveProcesses()
+        for series in seriesprocesses:
+            t1 = datetime.datetime.strptime(series[3],'%Y-%m-%d %H:%M:%S.%f')
+            if series[4] is not None:
+                t2 = datetime.datetime.strptime(series[4], '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                t2 = datetime.datetime.now()
+            tdiff = t2 - t1
+            self.m_dataViewListCtrlCloud.AppendItem(
+                [series[0],series[1],self.getStatus(series[2]),str(tdiff)])
+
+
+    # def getFilePanel(self):
+    #     """
+    #     Get access to filepanel
+    #     :return:
+    #     """
+    #     filepanel = None
+    #
+    #     for fp in self.Parent.Children:
+    #         if isinstance(fp, FileSelectPanel):
+    #             filepanel = fp
+    #             break
+    #     return filepanel
+
     def OnClearOutput(self, event):
         """
         Clear output panel
         :param event:
         :return:
         """
-        self.m_tcResults.Clear()
+        self.m_dataViewListCtrlCloud.DeleteAllItems()
 
 
 ########################################################################

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging
 import threading
 import time
@@ -8,6 +9,7 @@ from multiprocessing import freeze_support, Pool
 from os import access, R_OK, mkdir
 from os.path import join, dirname, exists, split, splitext, expanduser
 from config.dbquery import DBI
+import datetime
 from dicom2cloud.processmodules.testDocker import DCCDocker
 #from dicom2cloud.processmodules.runDocker import startDocker, checkIfDone, getStatus, finalizeJob
 from dicom2cloud.processmodules.uploadScripts import get_class
@@ -61,67 +63,67 @@ class DataEvent(wx.PyEvent):
 ############################################################################
 class ProcessThread(threading.Thread):
     """Multi Worker Thread Class."""
-
+   # wxGui, processname, self.cmodules[processref], targetdir, uuid, server, filenames, row, containername
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, processmodule, targetdir, seriesid, processname, server, filenames, row, containername):
+    def __init__(self, wxObject, processname, module_name, class_name, mountdir,inputdir, uuid, output,server,row, containername):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
         self.processname = processname
-        self.targetdir = targetdir
-        self.seriesid = seriesid
-        self.outputfile = 'output.mnc'
-        self.containername = containername
-        self.filenames = filenames
+        self.targetdir = join(inputdir, uuid)       #dir containing dicom files to be processed
+        self.uuid = uuid
+        self.outputfile = output                   #full filename of mnc output file
+        self.containername = containername          #docker image name
+        #self.filenames = filenames
         self.server = server
         self.row = row
         # Dynamic process module
-        (self.module_name, self.class_name) = processmodule
+        self.module_name = module_name
+        self.class_name = class_name
+        # Instantiate module
+        module = importlib.import_module(self.module_name)
+        class_ = getattr(module, self.class_name)
+        self.dcc = class_(self.containername, mountdir, output)
 
     # ----------------------------------------------------------------------
     def run(self):
-        i = 0
+        print('Starting thread run')
         try:
             event.set()
             lock.acquire(True)
-            # Load processing class
-            # Instantiate module
-            module = importlib.import_module(self.module_name)
-            class_ = getattr(module, self.class_name)
-            dcc = class_(self.containername, self.filenames, self.targetdir, self.seriesid)
-            #self.dcc = DCCDocker(containername, filenames, targetdir, seriesid)
-            (container, timeout) = dcc.startDocker(self.targetdir)
+            (container, timeout) = self.dcc.startDocker(self.targetdir)
             ctr = 0
-            print "Started"
-            while (not dcc.checkIfDone(container, timeout)):
-                time.sleep(5)
-                wx.PostEvent(self.wxObject, ResultEvent((ctr, self.seriesid, self.processname)))
-                ctr = 1
+            while (not self.dcc.checkIfDone(container, timeout)):
+                time.sleep(1)
+                wx.PostEvent(self.wxObject, ResultEvent((self.row,ctr, self.uuid, self.processname, 'Converting')))
+                ctr += 10
 
             # Check that everything ran ok
-            if dcc.getStatus(container) != 0:
+            if not self.dcc.getStatus(container):
                 raise Exception("There was an error while anonomizing the dataset.")
 
             # Get the resulting mnc file back to the original directory
-            dcc.finalizeJob(container, self.targetdir)
+            self.dcc.finalizeJob(container, self.targetdir)
 
             # Upload MNC to server
             mncfile = join(self.targetdir, self.outputfile)
-            uploadfile = join(self.targetdir, self.seriesid + '.mnc')
+            uploadfile = join(self.targetdir, self.uuid + '.mnc')
             if access(mncfile, R_OK):
                 shutil.copyfile(mncfile, uploadfile)
                 uploaderClass = get_class(self.server)
-                uploader = uploaderClass(self.seriesid)
+                uploader = uploaderClass(self.uuid)
                 uploader.upload(uploadfile, self.processname)
-                wx.PostEvent(self.wxObject, ResultEvent((2, self.seriesid, self.processname)))
-                print "Uploaded file: %s to %s" % (uploadfile, self.server)
-            print "Finished DockerThread"
+                wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr,self.uuid, self.processname, 'Uploading')))
+                msg ="Uploaded file: %s to %s" % (uploadfile, self.server)
+                print(msg)
+            print("Finished ProcessThread")
 
         except Exception as e:
-            wx.PostEvent(self.wxObject, ResultEvent((-1, self.seriesid, self.processname)))
+            print("ERROR:", e.args[0])
+            wx.PostEvent(self.wxObject, ResultEvent((self.row, -1, self.uuid, self.processname,e.args[0])))
 
         finally:
-            wx.PostEvent(self.wxObject, ResultEvent((10, self.seriesid, self.processname)))
+            wx.PostEvent(self.wxObject, ResultEvent((self.row,100, self.uuid, self.processname,'Done')))
             logger.info('Finished ProcessThread')
             # self.terminate()
             lock.release()
@@ -155,17 +157,15 @@ class Controller():
             if pf is not None:
                 pf.close()
 
-    def __loadLogger(self,outputdir=None, expt=''):
+    def __loadLogger(self,outputdir=None):
         #### LoggingConfig
         logger.setLevel(logging.INFO)
         homedir = expanduser("~")
         if outputdir is not None and access(outputdir, R_OK):
             homedir = outputdir
-        if len(expt) >0:
-            expt = expt + "_"
         if not access(join(homedir, "logs"), R_OK):
             mkdir(join(homedir, "logs"))
-        self.logfile = join(homedir, "logs", expt+'analysis.log')
+        self.logfile = join(homedir, "logs", 'd2c.log')
         handler = RotatingFileHandler(filename=self.logfile, maxBytes=10000000, backupCount=10)
         formatter = logging.Formatter('[ %(asctime)s %(levelname)-4s ] %(filename)s %(lineno)d : (%(threadName)-9s) %(message)s')
         handler.setFormatter(formatter)
@@ -173,30 +173,35 @@ class Controller():
         return logger
 
     # ----------------------------------------------------------------------
-    def RunProcess(self, wxGui, targetdir, seriesid, process, server, row):
+    def RunProcess(self, wxGui, inputdir, uuid, processname, server, row):
         """
-        Instantiate Thread with type for Process
-        :param wxGui:
-        :param filenames:
-        :param type:
-        :param row:
+        Run processing in a thread
+        :param wxGui: Process Panel ref
+        :param inputdir: Directory with DICOM files
+        :param uuid: unique ID from series number
+        :param processname: Process eg QSM
+        :param server: Cloud server to use eg AWS
+        :param row: Row number in progress table in Process Panel
         :return:
         """
-
-       # type = self.processes[process]['href']
-        processname = self.db.getCaption(process)
-        containername = "ilent2/dicom2cloud"
-        input = "/home/neuro/"
-        outputfile = "output.mnc"
-        outputdir = "/home/neuro/"
-        filenames = self.db.getFiles(seriesid)
+        # Get info from database
+        processref = self.db.getRef(processname)
+        containername = self.db.getProcessField('container',processname)
+        mountdir = self.db.getProcessField('containerinputdir',processname)
+        output = join(self.db.getProcessField('containeroutputdir',processname),self.db.getProcessField('outputfile', processname))
+        filenames = self.db.getFiles(uuid)
         if len(filenames) > 0:
-            logger.info("Load Process Threads: %s [row: %d]", type, row)
-            wx.PostEvent(wxGui, ResultEvent((0, row, 0, len(filenames), processname)))
-
-            t = ProcessThread(self, wxGui, self.cmodules[process], targetdir, seriesid, processname, server, filenames, row, containername)
+            msg = "Load Process Threads: %s [row: %d]" %  (processname, row)
+            print(msg)
+            #wx.PostEvent(wxGui, ResultEvent((row,0, uuid, processname)))
+            (module_name, class_name) = self.cmodules[processref]
+            t = ProcessThread(wxGui, processname, module_name, class_name, mountdir,inputdir, uuid, output,server, row, containername)
             t.start()
-            logger.info("Running Thread: %s", type)
+            msg = "Running Thread: %s" % processname
+            print(msg)
+            #Load to database for remote monitoring
+            self.db.setSeriesProcess(uuid,self.db.getProcessId(processname),server,1,datetime.datetime.now())
         else:
-            logger.error("No files to process")
-            raise ValueError("No matched files to process")
+            msg = "No files to process"
+            logger.error(msg)
+            raise ValueError(msg)

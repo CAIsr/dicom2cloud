@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest2 # as unittest
 import sys
+import datetime
 from sqlite3 import IntegrityError, OperationalError
 from dicom2cloud.config.dbquery import DBI
 
@@ -73,7 +74,7 @@ class TestDBquery(unittest2.TestCase):
         self.assertGreater(len(data),expected)
 
     def test_getFiles(self):
-        uuid = 't10000'
+        uuid = '5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
         data = self.dbi.getFiles(uuid)
         expected = 0
         print('Files: ', data)
@@ -85,7 +86,7 @@ class TestDBquery(unittest2.TestCase):
         data = self.dbi.getFiles(uuid)
         expected = 0
         print('Files: ', data)
-        self.assertIsNone(data)
+        self.assertEqual(expected,len(data))
 
     def test_addDicomdata(self):
         dicomdata = {'uuid': 't10000',
@@ -148,7 +149,7 @@ class TestDBquery(unittest2.TestCase):
         self.assertGreater(len(data), expected)
 
     def test_getNumberFiles(self):
-        uuid = 't10000'
+        uuid = '5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
         data = self.dbi.getNumberFiles(uuid)
         expected = 0
         print('Num files: ', data)
@@ -172,3 +173,25 @@ class TestDBquery(unittest2.TestCase):
         print('Dicomdata for: ', field,'=',data)
         self.assertIsNotNone(data)
         self.assertGreater(data, expected)
+
+    def test_getRef(self):
+        pname ='QSM'
+        expected='qsm'
+        data = self.dbi.getRef(pname)
+        self.assertEqual(expected, data)
+
+    # def test_setSeriesProcess(self):
+    #     uuid = '5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
+    #     pid = 1
+    #     server = 'AWS'
+    #     status = 1
+    #     starttime = datetime.datetime.now()
+    #     try:
+    #         rtn = self.dbi.setSeriesProcess(uuid, pid,server,status,starttime)
+    #         self.assertEqual(rtn, 1, 'Series Process add failed')
+    #     except IntegrityError as e:
+    #         self.skipTest(e.args[0])
+
+    def test_getActiveProcesses(self):
+        data = self.dbi.getActiveProcesses()
+        print(data)

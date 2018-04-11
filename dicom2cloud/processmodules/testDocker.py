@@ -6,12 +6,11 @@ import tempfile
 import os
 
 class DCCDocker():
-    def __init__(self, container, input,output,outputfile):
+    def __init__(self, container, input,output):
         self.client = docker.from_env()
         self.CONTAINER_NAME = container  # "ilent2/dicom2cloud"
         self.INPUT_TARGET = input  # "/home/neuro/"
-        self.OUTPUT_FILENAME = outputfile  # "output.mnc"
-        self.OUTPUT_TARGET = join(output, outputfile)  # "/home/neuro/" + self.OUTPUT_FILENAME
+        self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
 
     def startDocker(self,dataSet):
 
@@ -30,15 +29,14 @@ class DCCDocker():
     def getStatus(self,container):
         return 1
 
-    def finalizeJob(self,container):
+    def finalizeJob(self,container, outputDir):
         return 1
 
 if __name__ == '__main__':
     containername = "ilent2/dicom2cloud"
     input = "/home/neuro/"
-    outputfile = "output.mnc"
-    outputdir = "/home/neuro/"
-    dcc = DCCDocker(containername,input,outputdir,outputfile)
+    output = "/home/neuro/output.mnc"
+    dcc = DCCDocker(containername,input,output)
     (c, timeout) = dcc.startDocker('test')
     print c
     while(not dcc.checkIfDone(c, timeout)):

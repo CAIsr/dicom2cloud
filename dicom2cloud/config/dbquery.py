@@ -211,7 +211,55 @@ class DBI():
             if data is not None:
                 data = data[0][0]
         return data
-        
+
+    def getRef(self,processname):
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT ref FROM processes WHERE process=?", (self.validstring(processname),))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
+
+    def setSeriesProcess(self,uuid,pid,server,status,starttime):
+        if self.c is None:
+            self.connect()
+        if self.validstring(uuid) and self.validstring(server):
+            self.c.execute("INSERT INTO seriesprocess (uuid,processid,server,status,starttime) VALUES(?,?,?,?,?)", (uuid,pid,server,status,starttime))
+            self.conn.commit()
+            print('Seriesprocess loaded: ', uuid)
+            rtn = 1
+        else:
+            self.conn.rollback()
+            print('Invalid data for Seriesprocess')
+            rtn = 0
+        return rtn
+
+    def getProcessId(self,processname):
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT id FROM processes WHERE process=?", (self.validstring(processname),))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
+
+    def getProcessField(self,fieldname,processname):
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT " + fieldname + " FROM processes WHERE process=?", (self.validstring(processname),))
+        data = self.c.fetchone()
+        if data is not None:
+            data = data[0]
+        return data
+
+    def getActiveProcesses(self):
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT sp.uuid,p.process,sp.status,sp.starttime,sp.endtime FROM seriesprocess as sp, processes as p WHERE sp.processid = p.id")
+        data = self.c.fetchall()
+
+        return data
 
 #############################################################################
 if __name__ == "__main__":
