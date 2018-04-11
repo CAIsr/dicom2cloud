@@ -229,14 +229,14 @@ class ProcessRunPanel(ProcessPanel):
         elif count < 0:
             if len(statusmessage)<=0:
                 statusmessage = "Unknown"
-            self.m_dataViewListCtrlRunning.SetValue("ERROR:" + statusmessage, row=row, col=3)
+            self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
             self.m_btnRunProcess.Enable()
             self.m_stOutputlog.SetLabelText(statusmessage)
         elif count < 100:
             if len(statusmessage)<=0:
                 statusmessage = "Running"
             self.m_dataViewListCtrlRunning.SetValue(statusmessage, row=row, col=3)
-            self.m_dataViewListCtrlRunning.SetValue(self.toggleval, row=row, col=2)
+            self.m_dataViewListCtrlRunning.SetValue(count, row=row, col=2)
         else:
             if seriesid in self.start:
                 endtime = time.time() - self.start[seriesid]
