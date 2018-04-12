@@ -200,8 +200,33 @@ class Controller():
             msg = "Running Thread: %s" % processname
             print(msg)
             #Load to database for remote monitoring
-            self.db.setSeriesProcess(uuid,self.db.getProcessId(processname),server,1,datetime.datetime.now())
+            self.db.setSeriesProcess(uuid,self.db.getProcessId(processname),server,1,datetime.datetime.now(), inputdir)
         else:
             msg = "No files to process"
             logger.error(msg)
             raise ValueError(msg)
+
+    def checkRemote(self):
+        #Check if cloud processing is done and update database
+        seriesprocesses = self.db.getActiveProcesses()
+        for series in seriesprocesses:
+            seriesid = series[0]
+            server = series[2].lower()
+            outputdir = series[6]
+            if outputdir is None or len(outputdir) <= 0:
+                files = self.db.getFiles(seriesid)
+                outputdir = dirname(files[0])
+            # Get uploader class and query
+            uploaderClass = get_class(server)
+            uploader = uploaderClass(seriesid)
+            if uploader.isDone():
+                downloadfile = join(outputdir, seriesid, 'download.tar')
+                uploader.download(downloadfile)
+                msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid, downloadfile)
+                print(msg)
+                self.db.setSeriesProcessFinished(seriesid)
+                #Remove files in database
+                self.db.deleteSeriesData(seriesid)
+            else:
+                #Still in progress
+                self.db.setSeriesProcessInprogress(seriesid)

@@ -1,20 +1,20 @@
 from __future__ import print_function
-import csv
+
+import datetime
 import shutil
 import sys
 import time
 from glob import iglob
 from hashlib import sha256
-from os import R_OK, W_OK, mkdir, access, walk
+from os import W_OK, mkdir, access, walk
 from os.path import join, isdir, split, exists, basename
-import datetime
+
 import pydicom as dicom
 from pydicom.errors import InvalidDicomError
 
 from dicom2cloud.config.dbquery import DBI
 from dicom2cloud.controller import EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
-from dicom2cloud.processmodules.uploadScripts import get_class
 
 __version__ = '0.1.alpha'
 
@@ -38,7 +38,7 @@ class HomePanel(WelcomePanel):
         # self.m_richText1.WriteText(welcome)
         # self.m_richText1.EndFontSize()
         # self.m_richText1.Newline()
-        self.m_richText1.BeginTextColour(wx.Colour( 255,255,255 ))
+        self.m_richText1.BeginTextColour(wx.Colour(255, 255, 255))
         self.m_richText1.BeginFontSize(12)
         self.m_richText1.WriteText("Process your MRI scans with high performance functions in the cloud")
 
@@ -74,6 +74,7 @@ class HomePanel(WelcomePanel):
         self.m_richText1.EndAlignment()
         self.m_richText1.EndTextColour()
 
+
 ########################################################################
 
 
@@ -101,7 +102,7 @@ class FileSelectPanel(FilesPanel):
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
         self.outputdir = ''
         self.db = DBI()
-        #self.db.getconn()
+        # self.db.getconn()
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -158,7 +159,7 @@ class FileSelectPanel(FilesPanel):
 
             if not self.db.hasUuid(uuid):
                 self.db.addDicomdata(dicomdata)
-            if not self.db.hasFile(uuid,filename):
+            if not self.db.hasFile(uuid, filename):
                 self.db.addDicomfile(uuid, filename)
 
         # Load for selection
@@ -173,11 +174,11 @@ class FileSelectPanel(FilesPanel):
             print('From db get suid:', suid)
             numfiles = self.db.getNumberFiles(suid)
             self.m_dataViewListCtrl1.AppendItem(
-                [True, self.db.getDicomdata(suid,'patientname'),
-                 self.db.getDicomdata(suid,'sequence'),
-                 self.db.getDicomdata(suid,'protocol'),
-                 self.db.getDicomdata(suid,'imagetype'), str(numfiles),
-                 self.db.getDicomdata(suid,'seriesnum')])
+                [True, self.db.getDicomdata(suid, 'patientname'),
+                 self.db.getDicomdata(suid, 'sequence'),
+                 self.db.getDicomdata(suid, 'protocol'),
+                 self.db.getDicomdata(suid, 'imagetype'), str(numfiles),
+                 self.db.getDicomdata(suid, 'seriesnum')])
 
         msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
         self.m_status.SetLabelText(msg)
@@ -190,6 +191,7 @@ class FileSelectPanel(FilesPanel):
     def OnClearlist(self, event):
         print("Clear items in list")
         self.m_dataViewListCtrl1.DeleteAllItems()
+
 
 ########################################################################
 class ProcessRunPanel(ProcessPanel):
@@ -214,7 +216,7 @@ class ProcessRunPanel(ProcessPanel):
         :param col:
         :return:
         """
-        (row, count, seriesid, process,statusmessage) = msg.data
+        (row, count, seriesid, process, statusmessage) = msg.data
         print("\nProgress updated: ", time.ctime())
         print('\tPROGRESS: count = ', count, " row=", row)
         # row = 0
@@ -227,13 +229,13 @@ class ProcessRunPanel(ProcessPanel):
             self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
             self.start[seriesid] = time.time()
         elif count < 0:
-            if len(statusmessage)<=0:
+            if len(statusmessage) <= 0:
                 statusmessage = "Unknown"
             self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
             self.m_btnRunProcess.Enable()
             self.m_stOutputlog.SetLabelText(statusmessage)
         elif count < 100:
-            if len(statusmessage)<=0:
+            if len(statusmessage) <= 0:
                 statusmessage = "Running"
             self.m_dataViewListCtrlRunning.SetValue(statusmessage, row=row, col=3)
             self.m_dataViewListCtrlRunning.SetValue(count, row=row, col=2)
@@ -265,7 +267,7 @@ class ProcessRunPanel(ProcessPanel):
         :param event:
         :return:
         """
-        #self.shutdown()
+        # self.shutdown()
         print("Cancel multiprocessor")
         event.Skip()
 
@@ -306,7 +308,8 @@ class ProcessRunPanel(ProcessPanel):
             if filepanel.outputdir is not None and len(filepanel.outputdir) > 0:
                 targetdir = filepanel.outputdir
             else:
-                targetdir = join(filepanel.inputdir,'processed')  # check no files will be overwritten by creating subdir
+                targetdir = join(filepanel.inputdir,
+                                 'processed')  # check no files will be overwritten by creating subdir
                 msg = "No outputdir provided - using subdir: %s" % targetdir
                 print(msg)
             if not exists(targetdir):
@@ -346,7 +349,7 @@ class ProcessRunPanel(ProcessPanel):
         except Exception as e:
             self.Parent.Warn(e.args[0])
         finally:
-            self.m_stOutputlog.SetLabelText("** Uploads finished **")
+            self.m_stOutputlog.SetLabelText("** Finished uploading to Cloud **")
             # Enable Run button
             self.m_btnRunProcess.Enable()
 
@@ -392,13 +395,14 @@ class ProcessRunPanel(ProcessPanel):
             print("It Does not Match")
             return False
 
+
 #########################################################################
 class LogViewer(dlgLogViewer):
-    def __init__(self,parent):
+    def __init__(self, parent):
         super(LogViewer, self).__init__(parent)
         self.logfile = parent.controller.logfile
 
-    def OnLogRefresh(self,event):
+    def OnLogRefresh(self, event):
         self.m_textLog.LoadFile(self.logfile)
 
 
@@ -408,32 +412,10 @@ class CloudRunPanel(CloudPanel):
         super(CloudRunPanel, self).__init__(parent)
         self.controller = Controller()
 
-    def getStatus(self,code):
-        status = {0: 'Failed', 1: 'In progress', 2: 'Complete'}
+    def getStatus(self, code):
+        status = {0: 'Failed', 1: 'Uploaded', 2:'In progress', 3: 'Complete'}
         return status[code]
 
-    def checkRemote(self,seriesid):
-        #TODO: Check if files are done and update database
-        # self.m_tcResults.AppendText("\n***********\nCloud processing results\n***********\n")
-        # with open(dbfile) as csvfile:
-        #     reader = csv.DictReader(csvfile)
-        #     for row in reader:
-        #         print(row['Filename'], row['Server'])
-        #         seriesid = split(row['Filename'])[1]
-        #         server = row['Server'].lower()
-        #         # Get uploader class and query
-        #         uploaderClass = get_class(server)
-        #         uploader = uploaderClass(seriesid)
-        #         done = uploader.isDone()
-        #         if done:
-        #             uploader.download(join(self.outputdir, seriesid, 'download.tar'))
-        #             msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (
-        #                 seriesid, join(self.outputdir, seriesid, 'download.tar'))
-        #
-        #         else:
-        #             msg = 'Series: %s \n\tSTATUS: Still processing\n' % seriesid
-        #         self.m_tcResults.AppendText(msg)
-        pass
     def OnUpdate(self, event):
         """
         Load dummydatabase and for each seriesID - poll class
@@ -442,31 +424,21 @@ class CloudRunPanel(CloudPanel):
         """
         # Check remote - TODO
         # Query database for status of processing
-        #2018-04-11 13:25:56.914000
+        # 2018-04-11 13:25:56.914000
+        self.controller.checkRemote()
         seriesprocesses = self.controller.db.getActiveProcesses()
+
         for series in seriesprocesses:
-            t1 = datetime.datetime.strptime(series[3],'%Y-%m-%d %H:%M:%S.%f')
-            if series[4] is not None:
-                t2 = datetime.datetime.strptime(series[4], '%Y-%m-%d %H:%M:%S.%f')
+            # time delta
+            t1 = datetime.datetime.strptime(series[4], '%Y-%m-%d %H:%M:%S.%f')
+            if series[5] is not None:
+                t2 = datetime.datetime.strptime(series[5], '%Y-%m-%d %H:%M:%S.%f')
             else:
                 t2 = datetime.datetime.now()
             tdiff = t2 - t1
+            # Load to window
             self.m_dataViewListCtrlCloud.AppendItem(
-                [series[0],series[1],self.getStatus(series[2]),str(tdiff)])
-
-
-    # def getFilePanel(self):
-    #     """
-    #     Get access to filepanel
-    #     :return:
-    #     """
-    #     filepanel = None
-    #
-    #     for fp in self.Parent.Children:
-    #         if isinstance(fp, FileSelectPanel):
-    #             filepanel = fp
-    #             break
-    #     return filepanel
+                [series[0], series[1], series[2].upper(), self.getStatus(series[3]), str(tdiff)])
 
     def OnClearOutput(self, event):
         """
@@ -502,8 +474,8 @@ class AppMain(wx.Listbook):
         self.AssignImageList(il)
 
         pages = [(HomePanel(self), 'Welcome'),
-                 (FileSelectPanel(self), "Your Files"),
-                 (ProcessRunPanel(self), "Run Processes"),
+                 (FileSelectPanel(self), "DICOM Files"),
+                 (ProcessRunPanel(self), "Run in Cloud"),
                  (CloudRunPanel(self), "Check Status")]
 
         imID = 0

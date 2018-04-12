@@ -235,15 +235,6 @@ class ProcessPanel ( wx.Panel ):
 		self.m_stDescription.Wrap( -1 )
 		bSizer29.Add( self.m_stDescription, 0, wx.ALL|wx.EXPAND, 5 )
 		
-		self.txtCloudserver = wx.StaticText( self, wx.ID_ANY, u"Select Cloud server", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.txtCloudserver.Wrap( -1 )
-		bSizer29.Add( self.txtCloudserver, 0, wx.ALL, 5 )
-		
-		m_serverChoices = [ u"AWS", u"Google" ]
-		self.m_server = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_serverChoices, 0 )
-		self.m_server.SetSelection( 0 )
-		bSizer29.Add( self.m_server, 0, wx.ALL, 5 )
-		
 		
 		bSizer20.Add( bSizer29, 1, wx.EXPAND, 5 )
 		
@@ -260,6 +251,18 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer11 = wx.BoxSizer( wx.HORIZONTAL )
 		
+		self.txtCloudserver = wx.StaticText( self, wx.ID_ANY, u"Select Cloud server", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.txtCloudserver.Wrap( -1 )
+		bSizer11.Add( self.txtCloudserver, 0, wx.ALL, 5 )
+		
+		m_serverChoices = [ u"AWS", u"Google" ]
+		self.m_server = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_serverChoices, 0 )
+		self.m_server.SetSelection( 0 )
+		bSizer11.Add( self.m_server, 0, wx.ALL, 5 )
+		
+		self.m_btnLog = wx.Button( self, wx.ID_ANY, u"View Log file", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer11.Add( self.m_btnLog, 0, wx.ALL, 5 )
+		
 		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN", wx.DefaultPosition, wx.Size( 200,50 ), 0 )
 		self.m_btnRunProcess.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
 		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
@@ -267,9 +270,6 @@ class ProcessPanel ( wx.Panel ):
 		self.m_btnRunProcess.Enable( False )
 		
 		bSizer11.Add( self.m_btnRunProcess, 0, wx.ALL, 5 )
-		
-		self.m_btnLog = wx.Button( self, wx.ID_ANY, u"View Log file", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer11.Add( self.m_btnLog, 0, wx.ALL, 5 )
 		
 		
 		bSizer19.Add( bSizer11, 1, wx.EXPAND, 5 )
@@ -298,8 +298,8 @@ class ProcessPanel ( wx.Panel ):
 		
 		# Connect Events
 		self.m_checkListProcess.Bind( wx.EVT_CHECKLISTBOX, self.OnShowDescription )
-		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
 		self.m_btnLog.Bind( wx.EVT_BUTTON, self.OnShowLog )
+		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
 	
 	def __del__( self ):
 		pass
@@ -309,10 +309,10 @@ class ProcessPanel ( wx.Panel ):
 	def OnShowDescription( self, event ):
 		event.Skip()
 	
-	def OnRunScripts( self, event ):
+	def OnShowLog( self, event ):
 		event.Skip()
 	
-	def OnShowLog( self, event ):
+	def OnRunScripts( self, event ):
 		event.Skip()
 	
 
@@ -361,6 +361,7 @@ class CloudPanel ( wx.Panel ):
 		
 		self.m_columnSeries = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Series ID" )
 		self.m_columnProcess = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Process" )
+		self.m_columnServer = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Server" )
 		self.m_columnStatus = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Status" )
 		self.m_columnTime = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Time elapsed" )
 		bSizer1.Add( self.m_dataViewListCtrlCloud, 0, wx.ALL, 5 )

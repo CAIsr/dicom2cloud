@@ -4,6 +4,7 @@ import pandas
 import glob
 from os.path import join,abspath, isdir,isfile
 from os import access, R_OK, W_OK
+import datetime
 
 class DBI():
     def __init__(self):
@@ -221,11 +222,11 @@ class DBI():
             data = data[0]
         return data
 
-    def setSeriesProcess(self,uuid,pid,server,status,starttime):
+    def setSeriesProcess(self,uuid,pid,server,status,starttime,outputdir):
         if self.c is None:
             self.connect()
         if self.validstring(uuid) and self.validstring(server):
-            self.c.execute("INSERT INTO seriesprocess (uuid,processid,server,status,starttime) VALUES(?,?,?,?,?)", (uuid,pid,server,status,starttime))
+            self.c.execute("INSERT INTO seriesprocess (uuid,processid,server,status,starttime,outputdir) VALUES(?,?,?,?,?,?)", (uuid,pid,server,status,starttime, outputdir))
             self.conn.commit()
             print('Seriesprocess loaded: ', uuid)
             rtn = 1
@@ -256,10 +257,51 @@ class DBI():
     def getActiveProcesses(self):
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT sp.uuid,p.process,sp.status,sp.starttime,sp.endtime FROM seriesprocess as sp, processes as p WHERE sp.processid = p.id")
+        self.c.execute("SELECT sp.uuid,p.process,sp.server,sp.status,sp.starttime,sp.endtime, sp.outputdir FROM seriesprocess as sp, processes as p WHERE sp.processid = p.id")
         data = self.c.fetchall()
 
         return data
+
+    def setSeriesProcessInprogress(self, uuid):
+        if self.c is None:
+            self.connect()
+        if self.validstring(uuid):
+            status=2 #in progress - correlate with lookup status
+            self.c.execute("UPDATE seriesprocess SET status=? WHERE uuid=?" ,(status,uuid))
+            self.conn.commit()
+            print('Seriesprocess updated: ', uuid)
+            rtn = 1
+        else:
+            self.conn.rollback()
+            print('Invalid data for Seriesprocess')
+            rtn = 0
+        return rtn
+
+    def setSeriesProcessFinished(self, uuid):
+        if self.c is None:
+            self.connect()
+        if self.validstring(uuid):
+            status=3 #Finished - correlate with lookup status
+            endtime = datetime.datetime.now()
+            self.c.execute("UPDATE seriesprocess SET status=?, endtime=? WHERE uuid=?" ,(status,endtime,uuid))
+            self.conn.commit()
+            print('Seriesprocess loaded: ', uuid)
+            rtn = 1
+        else:
+            self.conn.rollback()
+            print('Invalid data for Seriesprocess')
+            rtn = 0
+        return rtn
+
+    def deleteSeriesData(self,uuid):
+        rtn = False
+        if self.c is None:
+            self.connect()
+        if self.validstring(uuid):
+            self.c.execute('DELETE FROM dicomdata WHERE uuid=?', (uuid,)) #cascade?
+            print('Series data deleted: ', uuid)
+            rtn = True
+        return rtn
 
 #############################################################################
 if __name__ == "__main__":

@@ -32,6 +32,14 @@ class uploadBase:
     def download(self, downloadFilename):
         pass
 
+    # TODO - polls status of job - ?to implement
+    def poll(self):
+        """
+
+        :return:
+        """
+        return True
+
 class uploadGoogle(uploadBase):
     """ Upload to a google cloud instance. """
 

@@ -180,6 +180,7 @@ class TestDBquery(unittest2.TestCase):
         data = self.dbi.getRef(pname)
         self.assertEqual(expected, data)
 
+    # INSERTING DATA - USE TEST DB ONLY
     # def test_setSeriesProcess(self):
     #     uuid = '5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
     #     pid = 1
