@@ -196,3 +196,7 @@ class TestDBquery(unittest2.TestCase):
     def test_getActiveProcesses(self):
         data = self.dbi.getActiveProcesses()
         print(data)
+
+    def test_deleteSeriesData(self):
+        uuid='5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
+        self.dbi.deleteSeriesData(uuid)

@@ -7,13 +7,16 @@ from os import access, R_OK, W_OK
 import datetime
 
 class DBI():
-    def __init__(self):
+    def __init__(self, test=False):
         """
         Init for connection to config db
         :param dbfile:
         """
         #locate db in config/
-        dbname= 'd2c.db'
+        if test:
+            dbname = 'd2c-test.db'
+        else:
+            dbname= 'd2c.db'
         cpath1 = join('config',dbname)
         cpath2 = join('..',cpath1)
         if access(dbname,R_OK):
@@ -155,11 +158,11 @@ class DBI():
             rtn = 0
         return rtn
 
-    def hasFile(self,uuid,dicomfile):
+    def hasFile(self,dicomfile):
         rtn = False
         if self.c is None:
             self.connect()
-        self.c.execute("SELECT COUNT(*) FROM dicomfiles WHERE filename=? AND uuid=?", (dicomfile,uuid))
+        self.c.execute("SELECT COUNT(*) FROM dicomfiles WHERE filename=?", (dicomfile,))
         data = self.c.fetchone()
         if data is not None and data[0] > 0:
             rtn = True
@@ -171,6 +174,16 @@ class DBI():
         self.c.execute("SELECT uuid FROM dicomdata")
         qry = self.c.fetchall()
         data = [d[0] for d in qry]
+        return data
+
+    def getNewUuids(self):
+        if self.c is None:
+            self.connect()
+        self.c.execute("SELECT uuid FROM dicomdata")
+        qry = self.c.fetchall()
+        self.c.execute("SELECT uuid FROM seriesprocess")
+        sps = self.c.fetchall()
+        data = [d[0] for d in qry if d not in sps]
         return data
 
     def hasUuid(self,uuid):
@@ -294,11 +307,19 @@ class DBI():
         return rtn
 
     def deleteSeriesData(self,uuid):
+        """
+        Remove all data from database for a series
+        :param uuid:
+        :return:
+        """
         rtn = False
         if self.c is None:
             self.connect()
         if self.validstring(uuid):
-            self.c.execute('DELETE FROM dicomdata WHERE uuid=?', (uuid,)) #cascade?
+            self.c.execute('DELETE FROM dicomdata WHERE uuid=?', (uuid,)) #cascade NOT working?
+            self.c.execute('DELETE FROM dicomfiles WHERE uuid=?', (uuid,))
+            self.c.execute('DELETE FROM seriesprocess WHERE uuid=?', (uuid,))
+            self.conn.commit()
             print('Series data deleted: ', uuid)
             rtn = True
         return rtn
@@ -308,14 +329,17 @@ if __name__ == "__main__":
     import os
 
     print(os.getcwd())
-
-    configdb = join('..', 'config', 'd2c.db')
-    if access(configdb,R_OK):
+    try:
         dbi = DBI()
         dbi.connect()
         data = dbi.getCaptions()
         print(data)
+        #Delete
+        # uuid = '5d74a20b44ec1dfd0af4fbc6bb680e0f557c14a08a143b843ef40977697e2bea'
+        # dbi.deleteSeriesData(uuid)
+        ds = dbi.getNewUuids()
+        print(ds)
 
-    else:
+    except:
         raise IOError("cannot access db")
 

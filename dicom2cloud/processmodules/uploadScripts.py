@@ -6,6 +6,7 @@ Licence: BSD 2-Clause
 
 # Libraries for google cloud
 from google.cloud import storage as gstorage
+from os.path import join
 
 # Libraries for AWS
 import boto3
@@ -46,9 +47,7 @@ class uploadGoogle(uploadBase):
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
 
-        self.storage_client = gstorage.Client.from_service_account_json(
-            '/src/HealthHack/clinic2cloud-ce7ac00ac070.json')
-
+        self.storage_client = gstorage.Client.from_service_account_json(join('config','clinic2cloud-ce7ac00ac070.json'))
         self.bucket = None
 
     def upload(self, uploadFilename, processingOptions):

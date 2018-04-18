@@ -6,6 +6,7 @@ import sys
 import time
 from glob import iglob
 from hashlib import sha256
+from controller_utils import generateuid,checkhashed
 from os import W_OK, mkdir, access, walk
 from os.path import join, isdir, split, exists, basename
 
@@ -13,7 +14,7 @@ import pydicom as dicom
 from pydicom.errors import InvalidDicomError
 
 from dicom2cloud.config.dbquery import DBI
-from dicom2cloud.controller import EVT_RESULT, Controller
+from dicom2cloud.controller import EVT_DATA,EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
 
 __version__ = '0.1.alpha'
@@ -101,8 +102,8 @@ class FileSelectPanel(FilesPanel):
         self.filedrop = MyFileDropTarget(self, self.m_dataViewListCtrl1)
         self.m_tcDragdrop.SetDropTarget(self.filedrop)
         self.outputdir = ''
-        self.db = DBI()
-        # self.db.getconn()
+        EVT_DATA(self, self.UpdateStatus)
+        self.controller = Controller()
 
     def OnInputdir(self, e):
         """ Open a file"""
@@ -123,9 +124,12 @@ class FileSelectPanel(FilesPanel):
             self.txtOutputdir.SetValue(self.outputdir)
         dlg.Destroy()
 
-    def generateuid(self, seriesnum):
-        hashed = sha256(seriesnum).hexdigest()
-        return hashed
+    def UpdateStatus(self,event):
+        print('Update status called')
+        (updatemsg,item) = event.data
+        if len(item) > 0:
+            self.m_dataViewListCtrl1.AppendItem(item)
+        self.m_status.SetLabelText(updatemsg)
 
     def extractSeriesInfo(self, inputdir):
         """
@@ -134,34 +138,37 @@ class FileSelectPanel(FilesPanel):
         :return:
         """
         self.m_status.SetLabelText("Detecting DICOM data ... please wait")
-        # allfiles = [y for y in iglob(join(inputdir, '*.IMA'))]
         allfiles = [y for x in walk(inputdir) for y in iglob(join(x[0], '*.IMA'))]
-        # series = {}
-        for filename in allfiles:
-            try:
-                dcm = dicom.read_file(filename)
-            except InvalidDicomError:
-                print("Not DICOM - skipping: ", filename)
-                continue
-
-            # Check DICOM header info
-            series_num = str(dcm.SeriesInstanceUID)
-            uuid = self.generateuid(series_num)
-            imagetype = str(dcm.ImageType[2])
-            dicomdata = {'uuid': uuid,
-                         'patientid': str(dcm.PatientID),
-                         'patientname': str(dcm.PatientName),
-                         'seriesnum': series_num,
-                         'sequence': str(dcm.SequenceName),
-                         'protocol': str(dcm.ProtocolName),
-                         'imagetype': imagetype
-                         }
-
-            if not self.db.hasUuid(uuid):
-                self.db.addDicomdata(dicomdata)
-            if not self.db.hasFile(uuid, filename):
-                self.db.addDicomfile(uuid, filename)
-
+        self.controller.parseDicom(self,allfiles)
+        # n = 1
+        # for filename in allfiles:
+        #     try:
+        #         if not self.db.hasFile(filename):
+        #             dcm = dicom.read_file(filename)
+        #             updatemsg = "Detecting DICOM data ... %d of %d" % (n, len(allfiles))
+        #             self.m_status.SetLabelText(updatemsg)
+        #             n += 1
+        #
+        #             # Check DICOM header info
+        #             series_num = str(dcm.SeriesInstanceUID)
+        #             uuid = self.generateuid(series_num)
+        #             imagetype = str(dcm.ImageType[2])
+        #             dicomdata = {'uuid': uuid,
+        #                          'patientid': str(dcm.PatientID),
+        #                          'patientname': str(dcm.PatientName),
+        #                          'seriesnum': series_num,
+        #                          'sequence': str(dcm.SequenceName),
+        #                          'protocol': str(dcm.ProtocolName),
+        #                          'imagetype': imagetype
+        #                          }
+        #
+        #             if not self.db.hasUuid(uuid):
+        #                 self.db.addDicomdata(dicomdata)
+        #             if not self.db.hasFile(filename):
+        #                 self.db.addDicomfile(uuid, filename)
+        #     except InvalidDicomError:
+        #         print("Not DICOM - skipping: ", filename)
+        #         continue
         # Load for selection
         # Columns:      Toggle      Select
         #               Text        PatientID
@@ -170,18 +177,18 @@ class FileSelectPanel(FilesPanel):
         #               Text        Image Type
         #               Text        Num Files
         #               Text        Series ID
-        for suid in self.db.getUuids():
-            print('From db get suid:', suid)
-            numfiles = self.db.getNumberFiles(suid)
-            self.m_dataViewListCtrl1.AppendItem(
-                [True, self.db.getDicomdata(suid, 'patientname'),
-                 self.db.getDicomdata(suid, 'sequence'),
-                 self.db.getDicomdata(suid, 'protocol'),
-                 self.db.getDicomdata(suid, 'imagetype'), str(numfiles),
-                 self.db.getDicomdata(suid, 'seriesnum')])
 
-        msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
-        self.m_status.SetLabelText(msg)
+        # for suid in db.getNewUuids():
+        #     numfiles = db.getNumberFiles(suid)
+        #     self.m_dataViewListCtrl1.AppendItem(
+        #         [True, self.controller.db.getDicomdata(suid, 'patientname'),
+        #          self.controller.db.getDicomdata(suid, 'sequence'),
+        #          self.controller.db.getDicomdata(suid, 'protocol'),
+        #          self.controller.db.getDicomdata(suid, 'imagetype'), str(numfiles),
+        #          self.controller.db.getDicomdata(suid, 'seriesnum')])
+        #
+        # msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
+        # self.m_status.SetLabelText(msg)
 
     def OnSelectall(self, event):
         for i in range(0, self.m_dataViewListCtrl1.GetItemCount()):
@@ -308,8 +315,7 @@ class ProcessRunPanel(ProcessPanel):
             if filepanel.outputdir is not None and len(filepanel.outputdir) > 0:
                 targetdir = filepanel.outputdir
             else:
-                targetdir = join(filepanel.inputdir,
-                                 'processed')  # check no files will be overwritten by creating subdir
+                targetdir = join(filepanel.inputdir,'..','processed')  # check no files will be overwritten by creating subdir
                 msg = "No outputdir provided - using subdir: %s" % targetdir
                 print(msg)
             if not exists(targetdir):
@@ -333,8 +339,8 @@ class ProcessRunPanel(ProcessPanel):
                         if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
                             seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
                             # for each series, create temp dir and copy files
-                            self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
-                            uuid = self.generateuid(seriesid)
+                            #self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
+                            uuid = generateuid(seriesid)
                             if self.copyseries(uuid, targetdir):
                                 self.m_stOutputlog.SetLabelText("Uploading %s" % seriesid)
                                 self.controller.RunProcess(self, targetdir, uuid, p, server, row)
@@ -349,7 +355,7 @@ class ProcessRunPanel(ProcessPanel):
         except Exception as e:
             self.Parent.Warn(e.args[0])
         finally:
-            self.m_stOutputlog.SetLabelText("** Finished uploading to Cloud **")
+            #self.m_stOutputlog.SetLabelText("** Finished uploading to Cloud **")
             # Enable Run button
             self.m_btnRunProcess.Enable()
 
@@ -383,18 +389,6 @@ class ProcessRunPanel(ProcessPanel):
                     shutil.copy(f, dest)
         return dest
 
-    def generateuid(self, seriesnum):
-        hashed = sha256(seriesnum).hexdigest()
-        return hashed
-
-    def checkhashed(self, seriesnum, hashed):
-        if hashed == sha256(seriesnum).hexdigest():
-            print("It Matches!")
-            return True
-        else:
-            print("It Does not Match")
-            return False
-
 
 #########################################################################
 class LogViewer(dlgLogViewer):
@@ -427,7 +421,7 @@ class CloudRunPanel(CloudPanel):
         # 2018-04-11 13:25:56.914000
         self.controller.checkRemote()
         seriesprocesses = self.controller.db.getActiveProcesses()
-
+        self.m_dataViewListCtrlCloud.DeleteAllItems()
         for series in seriesprocesses:
             # time delta
             t1 = datetime.datetime.strptime(series[4], '%Y-%m-%d %H:%M:%S.%f')
@@ -438,15 +432,22 @@ class CloudRunPanel(CloudPanel):
             tdiff = t2 - t1
             # Load to window
             self.m_dataViewListCtrlCloud.AppendItem(
-                [series[0], series[1], series[2].upper(), self.getStatus(series[3]), str(tdiff)])
+                [False,series[0], series[1], series[2].upper(), self.getStatus(series[3]), str(tdiff)])
 
-    def OnClearOutput(self, event):
+    def OnClearSelected(self, event):
         """
-        Clear output panel
+        Clears data from database and in output panel
         :param event:
         :return:
         """
-        self.m_dataViewListCtrlCloud.DeleteAllItems()
+
+        for i in range(self.m_dataViewListCtrlCloud.GetItemCount()):
+            if self.m_dataViewListCtrlCloud.GetToggleValue(i, 0):
+                series = self.m_dataViewListCtrlCloud.GetValue(i,1)
+                self.controller.db.deleteSeriesData(series)
+                self.m_dataViewListCtrlCloud.DeleteItem(i)
+                print('Row removed: ', i)
+
 
 
 ########################################################################

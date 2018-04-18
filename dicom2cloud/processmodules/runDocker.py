@@ -40,21 +40,17 @@ class DCCDocker():
         self.INPUT_TARGET = input #"/home/neuro/"
         self.OUTPUT_TARGET = output #"/home/neuro/" + self.OUTPUT_FILENAME
 
-    def startDocker(self,dataSet):
+    def startDocker(self,tarfile):
         """ Start a new docker instance and copy the data into the container.
 
-        @param dataSet      The folder name that container the input DICOM.
+        @param tarfile      The input DICOM files in a tarfile
         @return container   Reference to the created docker container.
         """
 
         # Check for updates to the docker image
         self.client.images.pull(self.CONTAINER_NAME)
-
         container = self.client.api.create_container(self.CONTAINER_NAME)
-
-        with docker.utils.tar(dataSet) as tar:
-            self.client.api.put_archive(container, self.INPUT_TARGET, tar)
-
+        self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
         self.client.api.start(container)
 
         return container

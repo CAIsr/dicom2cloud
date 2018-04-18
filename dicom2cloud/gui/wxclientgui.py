@@ -350,7 +350,9 @@ class CloudPanel ( wx.Panel ):
 		
 		bSizer16.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
 		
-		self.m_button14 = wx.Button( self, wx.ID_ANY, u"Clear Output", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_button14 = wx.Button( self, wx.ID_ANY, u"Clear Selected Data", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_button14.SetToolTip( u"Remove data from processing database" )
+		
 		bSizer16.Add( self.m_button14, 0, wx.ALL, 5 )
 		
 		
@@ -359,6 +361,7 @@ class CloudPanel ( wx.Panel ):
 		self.m_dataViewListCtrlCloud = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE|wx.VSCROLL )
 		self.m_dataViewListCtrlCloud.SetMinSize( wx.Size( 650,500 ) )
 		
+		self.m_columnSelect = self.m_dataViewListCtrlCloud.AppendToggleColumn( u"Select" )
 		self.m_columnSeries = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Series ID" )
 		self.m_columnProcess = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Process" )
 		self.m_columnServer = self.m_dataViewListCtrlCloud.AppendTextColumn( u"Server" )
@@ -372,7 +375,7 @@ class CloudPanel ( wx.Panel ):
 		
 		# Connect Events
 		self.m_btnCompareRun.Bind( wx.EVT_BUTTON, self.OnUpdate )
-		self.m_button14.Bind( wx.EVT_BUTTON, self.OnClearOutput )
+		self.m_button14.Bind( wx.EVT_BUTTON, self.OnClearSelected )
 	
 	def __del__( self ):
 		pass
@@ -382,7 +385,7 @@ class CloudPanel ( wx.Panel ):
 	def OnUpdate( self, event ):
 		event.Skip()
 	
-	def OnClearOutput( self, event ):
+	def OnClearSelected( self, event ):
 		event.Skip()
 	
 
