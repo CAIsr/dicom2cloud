@@ -27,20 +27,20 @@
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import docker
 import tarfile
 import tempfile
-from os.path import join
-import os
+
+import docker
+
 
 class DCCDocker():
-    def __init__(self, containername, input,output):
+    def __init__(self, containername, input, output):
         self.client = docker.from_env()
-        self.CONTAINER_NAME = containername #"ilent2/dicom2cloud"
-        self.INPUT_TARGET = input #"/home/neuro/"
-        self.OUTPUT_TARGET = output #"/home/neuro/" + self.OUTPUT_FILENAME
+        self.CONTAINER_NAME = containername  # "ilent2/dicom2cloud"
+        self.INPUT_TARGET = input  # "/home/neuro/"
+        self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
 
-    def startDocker(self,tarfile):
+    def startDocker(self, tarfile):
         """ Start a new docker instance and copy the data into the container.
 
         @param tarfile      The input DICOM files in a tarfile
@@ -48,14 +48,18 @@ class DCCDocker():
         """
 
         # Check for updates to the docker image
-        self.client.images.pull(self.CONTAINER_NAME)
-        container = self.client.api.create_container(self.CONTAINER_NAME)
-        self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
-        self.client.api.start(container)
+        try:
+            self.client.images.pull(self.CONTAINER_NAME)
+            container = self.client.api.create_container(self.CONTAINER_NAME)
+            self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
+            self.client.api.start(container)
+        except Exception as e:
+            print(e.args[0])
+
 
         return container
 
-    def waitUntilDone(self,container):
+    def waitUntilDone(self, container):
         """ Blocks until the docker container has processed the files.
 
         @param container    The container object returned by startDocker.
@@ -64,7 +68,7 @@ class DCCDocker():
 
         return self.client.api.wait(container)
 
-    def checkIfDone(self,container, timeout):
+    def checkIfDone(self, container, timeout):
         """ Checks if the docker has processed the files (non-blocking).
         To get the jobStatus you will need to call get status.
 
@@ -75,7 +79,7 @@ class DCCDocker():
         inspect = self.client.api.inspect_container(container['Id'])
         return inspect['State']['Running'] == False
 
-    def getStatus(self,container):
+    def getStatus(self, container):
         """ Get the status of the docker job.
 
         @param container    The container object returned by startDocker.
@@ -88,7 +92,7 @@ class DCCDocker():
         inspect = self.client.api.inspect_container(container['Id'])
         return inspect['State']['ExitCode']
 
-    def finalizeJob(self,container, outputDir):
+    def finalizeJob(self, container, outputDir):
         """ Copy data out of docker and free resources.
 
         @param container    The container object returned by startDocker.
@@ -107,3 +111,29 @@ class DCCDocker():
             tar.extractall(path=outputDir)
             tar.close()
 
+
+if __name__ == '__main__':
+    import time
+    from os.path import dirname
+    CONTAINER_NAME = "ilent2/dicom2cloud"
+    INPUT_TARGET = "/home/neuro/"
+    OUTPUT_TARGET = "/home/neuro/output.mnc"
+    inputdir = 'D:\\Data\\mridata\\exampleData\\output'
+    tarfile = "ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f.tar"
+
+    dcc = DCCDocker(CONTAINER_NAME,INPUT_TARGET,OUTPUT_TARGET)
+    (container, timeout) = dcc.startDocker(tarfile)
+    if container is None:
+        raise Exception("Unable to initialize Docker")
+    ctr = 0
+    while (not dcc.checkIfDone(container, timeout)):
+        time.sleep(1)
+        print('Converting: ', ctr)
+        ctr += 10
+
+    # Check that everything ran ok
+    if not dcc.getStatus(container):
+        print("There was an error while anonomizing the dataset.")
+
+    # Get the resulting mnc file back to the original directory
+    dcc.finalizeJob(container, dirname(tarfile))

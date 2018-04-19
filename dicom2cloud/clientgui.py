@@ -5,16 +5,11 @@ import shutil
 import sys
 import time
 from glob import iglob
-from hashlib import sha256
-from controller_utils import generateuid,checkhashed
 from os import W_OK, mkdir, access, walk
 from os.path import join, isdir, split, exists, basename
 
-import pydicom as dicom
-from pydicom.errors import InvalidDicomError
-
-from dicom2cloud.config.dbquery import DBI
-from dicom2cloud.controller import EVT_DATA,EVT_RESULT, Controller
+from controller_utils import generateuid
+from dicom2cloud.controller import EVT_DATA, EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
 
 __version__ = '0.1.alpha'
@@ -124,9 +119,9 @@ class FileSelectPanel(FilesPanel):
             self.txtOutputdir.SetValue(self.outputdir)
         dlg.Destroy()
 
-    def UpdateStatus(self,event):
+    def UpdateStatus(self, event):
         print('Update status called')
-        (updatemsg,item) = event.data
+        (updatemsg, item) = event.data
         if len(item) > 0:
             self.m_dataViewListCtrl1.AppendItem(item)
         self.m_status.SetLabelText(updatemsg)
@@ -139,7 +134,7 @@ class FileSelectPanel(FilesPanel):
         """
         self.m_status.SetLabelText("Detecting DICOM data ... please wait")
         allfiles = [y for x in walk(inputdir) for y in iglob(join(x[0], '*.IMA'))]
-        self.controller.parseDicom(self,allfiles)
+        self.controller.parseDicom(self, allfiles)
         # n = 1
         # for filename in allfiles:
         #     try:
@@ -301,7 +296,6 @@ class ProcessRunPanel(ProcessPanel):
         # Clear processing window
         self.m_dataViewListCtrlRunning.DeleteAllItems()
         # Disable Run button
-        # self.m_btnRunProcess.Disable()
         btn = event.GetEventObject()
         btn.Disable()
         # Get selected processes
@@ -315,7 +309,8 @@ class ProcessRunPanel(ProcessPanel):
             if filepanel.outputdir is not None and len(filepanel.outputdir) > 0:
                 targetdir = filepanel.outputdir
             else:
-                targetdir = join(filepanel.inputdir,'..','processed')  # check no files will be overwritten by creating subdir
+                targetdir = join(filepanel.inputdir, '..',
+                                 'processed')  # check no files will be overwritten by creating subdir
                 msg = "No outputdir provided - using subdir: %s" % targetdir
                 print(msg)
             if not exists(targetdir):
@@ -339,7 +334,7 @@ class ProcessRunPanel(ProcessPanel):
                         if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
                             seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
                             # for each series, create temp dir and copy files
-                            #self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
+                            # self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
                             uuid = generateuid(seriesid)
                             if self.copyseries(uuid, targetdir):
                                 self.m_stOutputlog.SetLabelText("Uploading %s" % seriesid)
@@ -355,7 +350,7 @@ class ProcessRunPanel(ProcessPanel):
         except Exception as e:
             self.Parent.Warn(e.args[0])
         finally:
-            #self.m_stOutputlog.SetLabelText("** Finished uploading to Cloud **")
+            # self.m_stOutputlog.SetLabelText("** Finished uploading to Cloud **")
             # Enable Run button
             self.m_btnRunProcess.Enable()
 
@@ -407,7 +402,7 @@ class CloudRunPanel(CloudPanel):
         self.controller = Controller()
 
     def getStatus(self, code):
-        status = {0: 'Failed', 1: 'Uploaded', 2:'In progress', 3: 'Complete'}
+        status = {0: 'Failed', 1: 'Uploaded', 2: 'In progress', 3: 'Complete'}
         return status[code]
 
     def OnUpdate(self, event):
@@ -432,7 +427,7 @@ class CloudRunPanel(CloudPanel):
             tdiff = t2 - t1
             # Load to window
             self.m_dataViewListCtrlCloud.AppendItem(
-                [False,series[0], series[1], series[2].upper(), self.getStatus(series[3]), str(tdiff)])
+                [False, series[0], series[1], series[2].upper(), self.getStatus(series[3]), str(tdiff)])
 
     def OnClearSelected(self, event):
         """
@@ -443,11 +438,10 @@ class CloudRunPanel(CloudPanel):
 
         for i in range(self.m_dataViewListCtrlCloud.GetItemCount()):
             if self.m_dataViewListCtrlCloud.GetToggleValue(i, 0):
-                series = self.m_dataViewListCtrlCloud.GetValue(i,1)
+                series = self.m_dataViewListCtrlCloud.GetValue(i, 1)
                 self.controller.db.deleteSeriesData(series)
                 self.m_dataViewListCtrlCloud.DeleteItem(i)
                 print('Row removed: ', i)
-
 
 
 ########################################################################
