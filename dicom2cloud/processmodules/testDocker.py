@@ -3,14 +3,19 @@ from __future__ import print_function
 import time
 
 import docker
+from dicom2cloud.config.dbquery import DBI
 
 
 class DCCDocker():
-    def __init__(self, container, input, output):
+    def __init__(self):
         self.client = docker.from_env()
-        self.CONTAINER_NAME = container  # "ilent2/dicom2cloud"
-        self.INPUT_TARGET = input  # "/home/neuro/"
-        self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
+        db = DBI()
+        db.connect()
+        self.CONTAINER_NAME = db.getServerConfigByName('DOCKER_CONTAINER')
+        self.INPUT_TARGET = db.getServerConfigByName('DOCKER_INPUTDIR')
+        self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
+        self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
+        db.closeconn()
 
     def startDocker(self, dataSet):
         print('Running docker dummy:', dataSet)
@@ -33,10 +38,8 @@ class DCCDocker():
 
 ############################################################################################
 if __name__ == '__main__':
-    containername = "ilent2/dicom2cloud"
-    input = "/home/neuro/"
-    output = "/home/neuro/output.mnc"
-    dcc = DCCDocker(containername, input, output)
+
+    dcc = DCCDocker()
     (c, timeout) = dcc.startDocker('test')
     print(c)
     while (not dcc.checkIfDone(c, timeout)):

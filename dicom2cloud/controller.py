@@ -142,12 +142,12 @@ class ProcessThread(threading.Thread):
 
     # wxGui, processname, self.cmodules[processref], targetdir, uuid, server, filenames, row, containername
     # ----------------------------------------------------------------------
-    def __init__(self, wxObject, processname, tarfile, uuid, server, row):
+    def __init__(self, wxObject, processname, inputdir, uuid, server, row):
         """Init Worker Thread Class."""
         threading.Thread.__init__(self)
         self.wxObject = wxObject
         self.processname = processname
-        self.tarfile = tarfile
+        self.inputdir = inputdir
         self.uuid = uuid
         self.server = server
         self.row = row
@@ -161,13 +161,8 @@ class ProcessThread(threading.Thread):
             # Instantiate module
             module = importlib.import_module(self.module_name)
             class_ = getattr(module, self.class_name)
-            # Docker details
-            self.containername = self.db.getProcessField('container', processname)
-            self.mountdir = self.db.getProcessField('containerinputdir', processname)
-            self.outputfile = join(self.db.getProcessField('containeroutputdir', processname),
-                                   self.db.getProcessField('outputfile', processname))
             # Docker Class
-            self.dcc = class_(self.containername, self.mountdir, self.outputfile)
+            self.dcc = class_()
         else:
             raise Exception('Cannot access Database')
 
@@ -178,7 +173,8 @@ class ProcessThread(threading.Thread):
             event.set()
             lock.acquire(True)
             # Convert IMA files to MNC via Docker image
-            (container, timeout) = self.dcc.startDocker(self.tarfile)
+            print('Running Docker image')
+            (container, timeout) = self.dcc.startDocker(join(self.inputdir,self.uuid))
             if container is None:
                 raise Exception("Unable to initialize Docker")
             ctr = 0
@@ -192,10 +188,11 @@ class ProcessThread(threading.Thread):
                 raise Exception("There was an error while anonomizing the dataset.")
 
             # Get the resulting mnc file back to the original directory
-            self.dcc.finalizeJob(container, dirname(self.tarfile))
-
+            self.dcc.finalizeJob(container, self.inputdir)
+            print('End running Docker')
             # Upload MNC to server
-            mncfile = join(dirname(self.tarfile), self.uuid + '.mnc')
+            print('Uploading MNC to server')
+            mncfile = join(self.inputdir, self.uuid + '.mnc')
             if access(mncfile, R_OK):
                 uploaderClass = get_class(self.server)
                 uploader = uploaderClass(self.uuid)
@@ -203,7 +200,7 @@ class ProcessThread(threading.Thread):
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Uploading')))
                 msg = "Uploaded file: %s to %s" % (mncfile, self.server)
                 logging.info(msg)
-
+            print('End processing')
         except Exception as e:
             print("ERROR:", e.args[0])
             wx.PostEvent(self.wxObject, ResultEvent((self.row, -1, self.uuid, self.processname, e.args[0])))
@@ -253,30 +250,24 @@ class Controller():
         :param row: Row number in progress table in Process Panel
         :return:
         """
-        # Get info from database
-        processref = self.db.getRef(processname)
-        # containername = self.db.getProcessField('container',processname)
-        # mountdir = self.db.getProcessField('containerinputdir',processname)
-        # output = join(self.db.getProcessField('containeroutputdir',processname),self.db.getProcessField('outputfile', processname))
         filenames = self.db.getFiles(uuid)
         try:
             if len(filenames) > 0:
                 msg = "Load Process Threads: %s [row: %d]" % (processname, row)
                 print(msg)
-                # Tar DICOM files to load to container for processing
-                tarfilename = join(inputdir, uuid + '.tar')
-                with tarfile.open(tarfilename, "w") as tar:
-                    for f in filenames:
-                        tar.add(f)
-                tar.close()
+                # # Tar DICOM files to load to container for processing
+                # tarfilename = join(inputdir, uuid + '.tar')
+                # with tarfile.open(tarfilename, "w") as tar:
+                #     for f in filenames:
+                #         tar.add(f)
+                # tar.close()
                 # Run thread
-                t = ProcessThread(wxGui, processname, tarfilename, uuid, server, row)
+                t = ProcessThread(wxGui, processname, inputdir, uuid, server, row)
                 t.start()
                 msg = "Running Thread: %s" % processname
                 print(msg)
                 # Load to database for remote monitoring
-                self.db.setSeriesProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),
-                                         inputdir)
+                self.db.setSeriesProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),inputdir)
             else:
                 msg = "No files to process"
                 logger.error(msg)

@@ -29,46 +29,64 @@
 
 import tarfile
 import tempfile
-
+from dicom2cloud.config.dbquery import DBI
 import docker
 
 
 class DCCDocker():
-    def __init__(self, containername, input, output):
+    def __init__(self):
         self.client = docker.from_env()
-        self.CONTAINER_NAME = containername  # "ilent2/dicom2cloud"
-        self.INPUT_TARGET = input  # "/home/neuro/"
-        self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
+        db = DBI()
+        db.connect()
+        self.CONTAINER_NAME = db.getServerConfigByName('DOCKER_CONTAINER')
+        self.INPUT_TARGET = db.getServerConfigByName('DOCKER_INPUTDIR')
+        self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
+        self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
 
-    def startDocker(self, tarfile):
+        db.closeconn()
+        # self.CONTAINER_NAME = containername  # "ilent2/dicom2cloud"
+        # self.INPUT_TARGET = input  # "/home/neuro/"
+        # self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
+
+    def startDocker(self, dataset):
         """ Start a new docker instance and copy the data into the container.
 
-        @param tarfile      The input DICOM files in a tarfile
+        @param dataset      The input DICOM files in a directory
         @return container   Reference to the created docker container.
         """
 
         # Check for updates to the docker image
+        container = None
         try:
+            print('Starting docker')
             self.client.images.pull(self.CONTAINER_NAME)
             container = self.client.api.create_container(self.CONTAINER_NAME)
-            self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
-            self.client.api.start(container)
+            if container is not None:
+                containerId = container['Id']
+                print('created container:', containerId)
+                with docker.utils.tar(dataset) as tar:
+                    rtn = self.client.api.put_archive(containerId, self.INPUT_TARGET, tar)
+                #self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
+                print('loaded archive')
+                self.client.api.start(containerId)
+                print('container is running')
+            else:
+                raise Exception("Container not created")
         except Exception as e:
             print(e.args[0])
 
+        return containerId
 
-        return container
-
-    def waitUntilDone(self, container):
+    def waitUntilDone(self, containerId):
         """ Blocks until the docker container has processed the files.
 
         @param container    The container object returned by startDocker.
         @return jobStatus   Returns 0 if docker ran successfully.
         """
 
-        return self.client.api.wait(container)
+        return self.client.api.wait(containerId)
 
-    def checkIfDone(self, container, timeout):
+    def checkIfDone(self, containerId):
         """ Checks if the docker has processed the files (non-blocking).
         To get the jobStatus you will need to call get status.
 
@@ -76,64 +94,67 @@ class DCCDocker():
         @return done        Returns True if stopped, False if running.
         """
 
-        inspect = self.client.api.inspect_container(container['Id'])
+        inspect = self.client.api.inspect_container(containerId)
         return inspect['State']['Running'] == False
 
-    def getStatus(self, container):
+    def getStatus(self, containerId):
         """ Get the status of the docker job.
 
         @param container    The container object returned by startDocker.
         @return jobStatus   Returns 0 if docker ran successfully.
         """
+        #TODO - GET TIME inspect['State']['StartedAt'] - inspect['State']['FinishedAt']
 
-        if not self.checkIfDone(container):
+        if not self.checkIfDone(containerId):
             raise Exception("Container not stopped.")
 
-        inspect = self.client.api.inspect_container(container['Id'])
+        inspect = self.client.api.inspect_container(containerId)
         return inspect['State']['ExitCode']
 
-    def finalizeJob(self, container, outputDir):
+    def finalizeJob(self, containerId, outputDir):
         """ Copy data out of docker and free resources.
 
         @param container    The container object returned by startDocker.
         @param outputDir    Directory name for the output MINC file.
         @return None
         """
+        #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
+        #TODO Replace with a direct copy - otherwise fills up disk
+        strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
 
-        with tempfile.NamedTemporaryFile() as tmpfile:
-            strm, stat = self.client.api.get_archive(container, self.OUTPUT_TARGET)
-
-            for d in strm:
-                tmpfile.write(d)
-            tmpfile.seek(0)
-
-            tar = tarfile.open(fileobj=tmpfile)
-            tar.extractall(path=outputDir)
-            tar.close()
+        # with tempfile.NamedTemporaryFile() as tmpfile:
+        #     strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
+        #
+        #     for d in strm:
+        #         tmpfile.write(d)
+        #     tmpfile.seek(0)
+        #
+        #     tar = tarfile.open(fileobj=tmpfile)
+        #     tar.extractall(path=outputDir)
+        #     tar.close()
 
 
 if __name__ == '__main__':
     import time
-    from os.path import dirname
-    CONTAINER_NAME = "ilent2/dicom2cloud"
-    INPUT_TARGET = "/home/neuro/"
-    OUTPUT_TARGET = "/home/neuro/output.mnc"
-    inputdir = 'D:\\Data\\mridata\\exampleData\\output'
-    tarfile = "ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f.tar"
+    from os.path import dirname,join
 
-    dcc = DCCDocker(CONTAINER_NAME,INPUT_TARGET,OUTPUT_TARGET)
-    (container, timeout) = dcc.startDocker(tarfile)
-    if container is None:
+    inputdir = 'D:\\Data\\mridata\\exampleData\\output'
+    uuid ='ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f'
+    #tarfile = "ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f.tar"
+
+    dcc = DCCDocker()
+    containerId = dcc.startDocker(join(inputdir,uuid))
+    if containerId is None:
         raise Exception("Unable to initialize Docker")
     ctr = 0
-    while (not dcc.checkIfDone(container, timeout)):
-        time.sleep(1)
+    while (not dcc.checkIfDone(containerId)):
+        time.sleep(5)
         print('Converting: ', ctr)
-        ctr += 10
+        ctr += 5
 
     # Check that everything ran ok
-    if not dcc.getStatus(container):
+    if not dcc.getStatus(containerId):
         print("There was an error while anonomizing the dataset.")
 
     # Get the resulting mnc file back to the original directory
-    dcc.finalizeJob(container, dirname(tarfile))
+    dcc.finalizeJob(containerId, inputdir)

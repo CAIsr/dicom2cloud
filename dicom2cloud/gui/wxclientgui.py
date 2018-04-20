@@ -9,6 +9,7 @@
 
 import wx
 import wx.xrc
+import wx.grid
 import wx.dataview
 import wx.richtext
 
@@ -21,183 +22,88 @@ class ConfigPanel ( wx.Panel ):
 	def __init__( self, parent ):
 		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( -1,-1 ), style = wx.TAB_TRAVERSAL )
 		
-		fgSizer1 = wx.FlexGridSizer( 0, 2, 0, 0 )
-		fgSizer1.SetFlexibleDirection( wx.VERTICAL )
-		fgSizer1.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+		bSizer16 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_Title = wx.StaticText( self, wx.ID_ANY, u"Configuration", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTRE )
-		self.m_Title.Wrap( -1 )
-		self.m_Title.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
+		self.m_staticText39 = wx.StaticText( self, wx.ID_ANY, u"Configuration Settings", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText39.Wrap( -1 )
+		self.m_staticText39.SetFont( wx.Font( 14, 70, 90, 90, False, wx.EmptyString ) )
 		
-		fgSizer1.Add( self.m_Title, 0, wx.ALIGN_LEFT|wx.ALL, 5 )
-		
-		self.m_status = wx.StaticText( self, wx.ID_ANY, u"Settings for processing scripts", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_status.Wrap( -1 )
-		self.m_status.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 71, 93, 90, False, wx.EmptyString ) )
-		
-		fgSizer1.Add( self.m_status, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
+		bSizer16.Add( self.m_staticText39, 0, wx.ALL, 5 )
 		
 		self.m_staticline8 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
-		fgSizer1.Add( self.m_staticline8, 0, wx.EXPAND |wx.ALL, 5 )
+		bSizer16.Add( self.m_staticline8, 0, wx.EXPAND |wx.ALL, 5 )
 		
-		self.m_staticline9 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
-		fgSizer1.Add( self.m_staticline9, 0, wx.EXPAND |wx.ALL, 5 )
+		self.m_gridConfig = wx.grid.Grid( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
 		
-		self.m_staticText18 = wx.StaticText( self, wx.ID_ANY, u"Data Filename (eg AllROI-D.txt)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText18.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText18, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		# Grid
+		self.m_gridConfig.CreateGrid( 20, 3 )
+		self.m_gridConfig.EnableEditing( True )
+		self.m_gridConfig.EnableGridLines( True )
+		self.m_gridConfig.EnableDragGridSize( False )
+		self.m_gridConfig.SetMargins( 0, 0 )
 		
-		self.m_textCtrl15 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl15, 0, wx.ALL, 5 )
+		# Columns
+		self.m_gridConfig.SetColSize( 0, 140 )
+		self.m_gridConfig.SetColSize( 1, 140 )
+		self.m_gridConfig.SetColSize( 2, 182 )
+		self.m_gridConfig.EnableDragColMove( False )
+		self.m_gridConfig.EnableDragColSize( True )
+		self.m_gridConfig.SetColLabelSize( 30 )
+		self.m_gridConfig.SetColLabelValue( 0, u"Name" )
+		self.m_gridConfig.SetColLabelValue( 1, u"Value" )
+		self.m_gridConfig.SetColLabelValue( 2, u"Description" )
+		self.m_gridConfig.SetColLabelAlignment( wx.ALIGN_CENTRE, wx.ALIGN_CENTRE )
 		
-		self.m_staticText19 = wx.StaticText( self, wx.ID_ANY, u"MSD Filename (eg AllROI-MSD.txt)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText19.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText19, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		# Rows
+		self.m_gridConfig.EnableDragRowSize( True )
+		self.m_gridConfig.SetRowLabelSize( 80 )
+		self.m_gridConfig.SetRowLabelAlignment( wx.ALIGN_CENTRE, wx.ALIGN_CENTRE )
 		
-		self.m_textCtrl16 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl16, 0, wx.ALL, 5 )
+		# Label Appearance
 		
-		self.m_staticText3 = wx.StaticText( self, wx.ID_ANY, u"Histogram Filename (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText3.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText3, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		# Cell Defaults
+		self.m_gridConfig.SetDefaultCellAlignment( wx.ALIGN_LEFT, wx.ALIGN_TOP )
+		self.m_gridConfig.SetMinSize( wx.Size( 550,500 ) )
 		
-		self.m_textCtrl1 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl1, 0, wx.ALL, 5 )
+		bSizer16.Add( self.m_gridConfig, 0, wx.ALL, 5 )
 		
-		self.m_staticText4 = wx.StaticText( self, wx.ID_ANY, u"Filtered Filename (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText4.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		bSizer17 = wx.BoxSizer( wx.HORIZONTAL )
 		
-		self.m_textCtrl2 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl2, 0, wx.ALL, 5 )
+		self.m_btnSave = wx.Button( self, wx.ID_ANY, u"Save", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_btnSave.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
+		self.m_btnSave.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
+		self.m_btnSave.SetBackgroundColour( wx.Colour( 0, 128, 128 ) )
 		
-		self.m_staticText5 = wx.StaticText( self, wx.ID_ANY, u"Filtered MSD (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText5.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText5, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+		bSizer17.Add( self.m_btnSave, 0, wx.ALL, 5 )
 		
-		self.m_textCtrl3 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl3, 0, wx.ALL, 5 )
+		self.m_btnAdd = wx.Button( self, wx.ID_ANY, u"Add Row", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer17.Add( self.m_btnAdd, 0, wx.ALL, 5 )
 		
-		self.m_staticText181 = wx.StaticText( self, wx.ID_ANY, u"All Statistics Filename (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText181.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText181, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl161 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl161, 0, wx.ALL, 5 )
-		
-		self.m_staticText20 = wx.StaticText( self, wx.ID_ANY, u"Avg MSD Filename (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText20.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText20, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl18 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.Size( 200,-1 ), 0 )
-		fgSizer1.Add( self.m_textCtrl18, 0, wx.ALL, 5 )
-		
-		self.m_staticText7 = wx.StaticText( self, wx.ID_ANY, u"MSD points", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText7.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText7, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl4 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl4, 0, wx.ALL, 5 )
-		
-		self.m_staticText8 = wx.StaticText( self, wx.ID_ANY, u"Time Interval", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText8.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText8, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl5 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl5, 0, wx.ALL, 5 )
-		
-		self.m_staticText10 = wx.StaticText( self, wx.ID_ANY, u"D column label (exact match)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText10.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText10, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl8 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl8, 0, wx.ALL, 5 )
-		
-		self.m_staticText11 = wx.StaticText( self, wx.ID_ANY, u"Log column label (generated)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText11.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText11, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl9 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl9, 0, wx.ALL, 5 )
-		
-		self.m_staticText12 = wx.StaticText( self, wx.ID_ANY, u"Min limit", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText12.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText12, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl10 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl10, 0, wx.ALL, 5 )
-		
-		self.m_staticText13 = wx.StaticText( self, wx.ID_ANY, u"Max limit", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText13.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText13, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl11 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl11, 0, wx.ALL, 5 )
-		
-		self.m_staticText14 = wx.StaticText( self, wx.ID_ANY, u"Binwidth", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText14.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl12 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl12, 0, wx.ALL, 5 )
-		
-		self.m_staticText15 = wx.StaticText( self, wx.ID_ANY, u"Mobile Threshold", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText15.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText15, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-		
-		self.m_textCtrl13 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_textCtrl13, 0, wx.ALL, 5 )
-		
-		self.m_staticText21 = wx.StaticText( self, wx.ID_ANY, u"Group 1", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText21.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText21, 0, wx.ALL, 5 )
-		
-		self.m_tcGroup1 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_tcGroup1, 0, wx.ALL, 5 )
-		
-		self.m_staticText22 = wx.StaticText( self, wx.ID_ANY, u"Group 2", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText22.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText22, 0, wx.ALL, 5 )
-		
-		self.m_tcGroup2 = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_tcGroup2, 0, wx.ALL, 5 )
-		
-		self.m_staticText61 = wx.StaticText( self, wx.ID_ANY, u"Cell ID (number of subfolders)", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_staticText61.Wrap( -1 )
-		fgSizer1.Add( self.m_staticText61, 0, wx.ALL, 5 )
-		
-		self.m_tcCellid = wx.TextCtrl( self, wx.ID_ANY, u"3", wx.DefaultPosition, wx.DefaultSize, 0 )
-		fgSizer1.Add( self.m_tcCellid, 0, wx.ALL, 5 )
-		
-		bSizer22 = wx.BoxSizer( wx.HORIZONTAL )
-		
-		self.btnLoadConfig = wx.Button( self, wx.ID_ANY, u"Load From File", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer22.Add( self.btnLoadConfig, 0, wx.ALL, 5 )
-		
-		self.btnSave = wx.Button( self, wx.ID_ANY, u"Save Changes", wx.DefaultPosition, wx.DefaultSize, 0 )
-		bSizer22.Add( self.btnSave, 0, wx.ALL, 5 )
+		self.m_txtStatus = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_txtStatus.Wrap( -1 )
+		bSizer17.Add( self.m_txtStatus, 0, wx.ALL, 5 )
 		
 		
-		fgSizer1.Add( bSizer22, 1, wx.EXPAND, 5 )
+		bSizer16.Add( bSizer17, 1, wx.EXPAND, 5 )
 		
 		
-		self.SetSizer( fgSizer1 )
+		self.SetSizer( bSizer16 )
 		self.Layout()
-		fgSizer1.Fit( self )
+		bSizer16.Fit( self )
 		
 		# Connect Events
-		self.btnLoadConfig.Bind( wx.EVT_BUTTON, self.OnLoadConfig )
-		self.btnSave.Bind( wx.EVT_BUTTON, self.OnSaveConfig )
+		self.m_btnSave.Bind( wx.EVT_BUTTON, self.OnSaveConfig )
+		self.m_btnAdd.Bind( wx.EVT_BUTTON, self.OnAddRow )
 	
 	def __del__( self ):
 		pass
 	
 	
 	# Virtual event handlers, overide them in your derived class
-	def OnLoadConfig( self, event ):
+	def OnSaveConfig( self, event ):
 		event.Skip()
 	
-	def OnSaveConfig( self, event ):
+	def OnAddRow( self, event ):
 		event.Skip()
 	
 
@@ -351,7 +257,7 @@ class CloudPanel ( wx.Panel ):
 		bSizer16.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
 		
 		self.m_button14 = wx.Button( self, wx.ID_ANY, u"Clear Selected Data", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_button14.SetToolTip( u"Remove data from processing database" )
+		self.m_button14.SetToolTipString( u"Remove data from processing database" )
 		
 		bSizer16.Add( self.m_button14, 0, wx.ALL, 5 )
 		

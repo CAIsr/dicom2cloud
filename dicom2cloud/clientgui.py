@@ -7,8 +7,8 @@ import time
 from glob import iglob
 from os import W_OK, mkdir, access, walk
 from os.path import join, isdir, split, exists, basename
-
-from controller_utils import generateuid
+from dicom2cloud.config.dbquery import DBI
+from dicom2cloud.controller_utils import generateuid
 from dicom2cloud.controller import EVT_DATA, EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
 
@@ -72,7 +72,51 @@ class HomePanel(WelcomePanel):
 
 
 ########################################################################
+class Config(ConfigPanel):
+    def __init__(self, parent):
+        super(Config, self).__init__(parent)
+        self.parent = parent
+        self.dbi = DBI()
+        self.OnLoadData()
 
+    def OnLoadData(self):
+        self.dbi.connect()
+        #load config values
+        conf = self.dbi.getServerConfig()
+        if conf is not None:
+            rownum=0
+            for k in conf.keys():
+                self.m_gridConfig.SetCellValue(rownum, 0, k)
+                self.m_gridConfig.SetCellValue(rownum, 1, conf[k][0])
+                if conf[k][1] is not None:
+                    self.m_gridConfig.SetCellValue(rownum, 2, conf[k][1])
+                rownum += 1
+        self.dbi.closeconn()
+
+
+    def OnSaveConfig(self, event):
+        self.dbi.connect()
+        #configid = self.cboConfigid.GetValue()
+        configlist=[]
+        data = self.m_gridConfig.GetTable()
+        for rownum in range(0, data.GetRowsCount()):
+            if not data.IsEmptyCell(rownum, 0):
+                configlist.append((self.m_gridConfig.GetCellValue(rownum, 0),
+                                   self.m_gridConfig.GetCellValue(rownum, 1),
+                                   self.m_gridConfig.GetCellValue(rownum, 2)))
+        print('Saved settings:', configlist)
+        # Save to DB
+        cnt = self.dbi.addServerConfig(configlist)
+
+        #notification
+        msg = "Settings saved: %s" % cnt
+        self.m_txtStatus.SetLabelText(msg)
+        self.dbi.closeconn()
+
+    def OnAddRow(self, event):
+        self.m_gridConfig.AppendRows(1, True)
+
+########################################################################
 
 class MyFileDropTarget(wx.FileDropTarget):
     def __init__(self, panel, target):
@@ -135,55 +179,7 @@ class FileSelectPanel(FilesPanel):
         self.m_status.SetLabelText("Detecting DICOM data ... please wait")
         allfiles = [y for x in walk(inputdir) for y in iglob(join(x[0], '*.IMA'))]
         self.controller.parseDicom(self, allfiles)
-        # n = 1
-        # for filename in allfiles:
-        #     try:
-        #         if not self.db.hasFile(filename):
-        #             dcm = dicom.read_file(filename)
-        #             updatemsg = "Detecting DICOM data ... %d of %d" % (n, len(allfiles))
-        #             self.m_status.SetLabelText(updatemsg)
-        #             n += 1
-        #
-        #             # Check DICOM header info
-        #             series_num = str(dcm.SeriesInstanceUID)
-        #             uuid = self.generateuid(series_num)
-        #             imagetype = str(dcm.ImageType[2])
-        #             dicomdata = {'uuid': uuid,
-        #                          'patientid': str(dcm.PatientID),
-        #                          'patientname': str(dcm.PatientName),
-        #                          'seriesnum': series_num,
-        #                          'sequence': str(dcm.SequenceName),
-        #                          'protocol': str(dcm.ProtocolName),
-        #                          'imagetype': imagetype
-        #                          }
-        #
-        #             if not self.db.hasUuid(uuid):
-        #                 self.db.addDicomdata(dicomdata)
-        #             if not self.db.hasFile(filename):
-        #                 self.db.addDicomfile(uuid, filename)
-        #     except InvalidDicomError:
-        #         print("Not DICOM - skipping: ", filename)
-        #         continue
-        # Load for selection
-        # Columns:      Toggle      Select
-        #               Text        PatientID
-        #               Text        Sequence
-        #               Text        Protocol
-        #               Text        Image Type
-        #               Text        Num Files
-        #               Text        Series ID
 
-        # for suid in db.getNewUuids():
-        #     numfiles = db.getNumberFiles(suid)
-        #     self.m_dataViewListCtrl1.AppendItem(
-        #         [True, self.controller.db.getDicomdata(suid, 'patientname'),
-        #          self.controller.db.getDicomdata(suid, 'sequence'),
-        #          self.controller.db.getDicomdata(suid, 'protocol'),
-        #          self.controller.db.getDicomdata(suid, 'imagetype'), str(numfiles),
-        #          self.controller.db.getDicomdata(suid, 'seriesnum')])
-        #
-        # msg = "Total Series loaded: %d" % self.m_dataViewListCtrl1.GetItemCount()
-        # self.m_status.SetLabelText(msg)
 
     def OnSelectall(self, event):
         for i in range(0, self.m_dataViewListCtrl1.GetItemCount()):
@@ -460,15 +456,18 @@ class AppMain(wx.Listbook):
         il = wx.ImageList(32, 32)
         bmp = wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_FRAME_ICON, (32, 32))
         il.Add(bmp)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_TIP, wx.ART_FRAME_ICON, (32, 32))
+        il.Add(bmp)
         bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_FRAME_ICON, (32, 32))
         il.Add(bmp)
         bmp = wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_FRAME_ICON, (32, 32))
         il.Add(bmp)
-        bmp = wx.ArtProvider.GetBitmap(wx.ART_TIP, wx.ART_FRAME_ICON, (32, 32))
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_REPORT_VIEW, wx.ART_FRAME_ICON, (32, 32))
         il.Add(bmp)
         self.AssignImageList(il)
 
         pages = [(HomePanel(self), 'Welcome'),
+                 (Config(self), 'Settings'),
                  (FileSelectPanel(self), "DICOM Files"),
                  (ProcessRunPanel(self), "Run in Cloud"),
                  (CloudRunPanel(self), "Check Status")]

@@ -4,19 +4,21 @@ Copyright 2017 The Clinic2Cloud Team
 Licence: BSD 2-Clause
 """
 
-# Libraries for google cloud
-from google.cloud import storage as gstorage
-from os.path import join
-
 # Libraries for AWS
 import boto3
 from botocore.errorfactory import ClientError as botoClientError
+# Libraries for google cloud
+from google.cloud import storage as gstorage
+
+from dicom2cloud.config.dbquery import DBI
+
 
 class uploadBase:
     """ Base class for uploads. """
 
     def __init__(self, uid):
         self.uid = uid
+        self.db = DBI()
     
     def upload(self, uploadFilename, processingOptions):
         """ Create a new bucket and upload blobs for the file and options.
@@ -46,8 +48,11 @@ class uploadGoogle(uploadBase):
 
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
-
-        self.storage_client = gstorage.Client.from_service_account_json(join('config','clinic2cloud-ce7ac00ac070.json'))
+        if self.db.c is None:
+            self.db.connect()
+        configfile = self.db.getServerConfigByName('GOOGLE_CONFIGFILE')
+        self.db.closeconn()
+        self.storage_client = gstorage.Client.from_service_account_json(configfile)
         self.bucket = None
 
     def upload(self, uploadFilename, processingOptions):
@@ -92,10 +97,11 @@ class uploadAws(uploadBase):
 
     def __init__(self, uid):
         uploadBase.__init__(self, uid)
-
-        # Keys for testing
-        ACCESS_KEY = 'AKIAJMCQSW3BE53VZGUQ'
-        SECRET_KEY = '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'
+        if self.db.c is None:
+            self.db.connect()
+        ACCESS_KEY = self.db.getServerConfigByName('AWS_ACCESS_KEY')
+        SECRET_KEY = self.db.getServerConfigByName('AWS_SECRET_KEY')
+        self.db.closeconn()
 
         # Create a client for the connection
         self.client = boto3.client('s3',
