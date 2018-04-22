@@ -19,16 +19,13 @@ class DCCDocker():
 
     def startDocker(self, dataSet):
         print('Running docker dummy:', dataSet)
-        timeout = time.time() + 60 * .1
-        return ('c1', timeout)
+        self.timeout = time.time() + 60 * .1
+        return 'c1'
 
-    def checkIfDone(self, container, timeout):
+    def checkIfDone(self, container):
         timer = time.time()
         print(timer)
-        if timer >= timeout:
-            return True
-        else:
-            return False
+        return timer >= self.timeout
 
     def getStatus(self, container):
         return 1

@@ -5,12 +5,12 @@ from os.path import join,abspath
 from glob import iglob
 
 def generateuid(seriesnum):
-    hashed = sha256(seriesnum).hexdigest()
+    hashed = sha256(str(seriesnum).encode('utf-8')).hexdigest()
     return hashed
 
 
 def checkhashed(seriesnum, hashed):
-    if hashed == sha256(seriesnum).hexdigest():
+    if hashed == sha256(str(seriesnum).encode('utf-8')).hexdigest():
         print("It Matches!")
         return True
     else:

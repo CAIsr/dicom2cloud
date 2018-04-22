@@ -229,7 +229,8 @@ class ProcessRunPanel(ProcessPanel):
         elif count < 0:
             if len(statusmessage) <= 0:
                 statusmessage = "Unknown"
-            self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
+            if self.m_dataViewListCtrlRunning.GetItemCount() > row:
+                self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
             self.m_btnRunProcess.Enable()
             self.m_stOutputlog.SetLabelText(statusmessage)
         elif count < 100:
@@ -431,13 +432,16 @@ class CloudRunPanel(CloudPanel):
         :param event:
         :return:
         """
-
+        deleteitems =[]
         for i in range(self.m_dataViewListCtrlCloud.GetItemCount()):
             if self.m_dataViewListCtrlCloud.GetToggleValue(i, 0):
                 series = self.m_dataViewListCtrlCloud.GetValue(i, 1)
                 self.controller.db.deleteSeriesData(series)
-                self.m_dataViewListCtrlCloud.DeleteItem(i)
-                print('Row removed: ', i)
+                deleteitems.append(i)
+
+        for j in range(len(deleteitems)):
+            self.m_dataViewListCtrlCloud.DeleteItem(j)
+            print('Series removed: ', j)
 
 
 ########################################################################

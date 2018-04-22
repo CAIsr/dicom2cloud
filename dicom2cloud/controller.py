@@ -109,7 +109,7 @@ class DicomThread(threading.Thread):
                     logging.warning("Not valid DICOM - skipping: ", filename)
                     continue
             ############## Load Series Info
-            for suid in self.db.getNewUuids():
+            for suid in self.db.getUuids():
                 numfiles = self.db.getNumberFiles(suid)
                 item = [True, self.db.getDicomdata(suid, 'patientname'),
                         self.db.getDicomdata(suid, 'sequence'),
@@ -118,18 +118,20 @@ class DicomThread(threading.Thread):
                         self.db.getDicomdata(suid, 'seriesnum')]
                 wx.PostEvent(self.wxObject, DataEvent((suid, item)))
         except Exception as e:
-            updatemsg = 'ERROR encountered during DICOM thread: %s' % e.args[0]
-            logging.error(updatemsg)
-            wx.PostEvent(self.wxObject, DataEvent((updatemsg, [])))
+            msg = 'ERROR encountered during DICOM thread: %s' % e.args[0]
         finally:
             n = len(self.db.getNewUuids())
             if n > 0:
                 msg = "Total Series loaded: %d" % n
-            else:
+                logger.info(msg)
+            elif len(self.db.getUuids()) > 0:
                 msg = "Series already processed. Remove via Status Panel to repeat upload."
+                logger.info(msg)
+            else:
+                logging.error(msg)
             if self.db.conn is not None:
                 self.db.closeconn()
-            logger.info(msg)
+
             wx.PostEvent(self.wxObject, DataEvent((msg, [])))
             # self.terminate()
             lock.release()
@@ -169,26 +171,30 @@ class ProcessThread(threading.Thread):
     # ----------------------------------------------------------------------
     def run(self):
         print('Starting thread run')
+        msg = ''
+        ctr = 0
         try:
             event.set()
             lock.acquire(True)
             # Convert IMA files to MNC via Docker image
             print('Running Docker image')
-            (container, timeout) = self.dcc.startDocker(join(self.inputdir,self.uuid))
-            if container is None:
-                raise Exception("Unable to initialize Docker")
-            ctr = 0
-            while (not self.dcc.checkIfDone(container, timeout)):
+            containerId = self.dcc.startDocker(join(self.inputdir,self.uuid))
+            if containerId is None:
+                raise Exception("ERROR: Unable to initialize Docker")
+            else:
+                print('Container ID:', containerId)
+
+            while (not self.dcc.checkIfDone(containerId)):
                 time.sleep(1)
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Converting')))
                 ctr += 10
 
             # Check that everything ran ok
-            if not self.dcc.getStatus(container):
-                raise Exception("There was an error while anonomizing the dataset.")
+            if not self.dcc.getStatus(containerId):
+                raise Exception("ERROR: Docker unable to anonomize the dataset")
 
             # Get the resulting mnc file back to the original directory
-            self.dcc.finalizeJob(container, self.inputdir)
+            self.dcc.finalizeJob(containerId, self.inputdir)
             print('End running Docker')
             # Upload MNC to server
             print('Uploading MNC to server')
@@ -200,18 +206,21 @@ class ProcessThread(threading.Thread):
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Uploading')))
                 msg = "Uploaded file: %s to %s" % (mncfile, self.server)
                 logging.info(msg)
-            print('End processing')
+            msg = 'Finished Docker Thread'
+            ctr = 100
+            print(msg)
+            logger.info(msg)
         except Exception as e:
-            print("ERROR:", e.args[0])
-            wx.PostEvent(self.wxObject, ResultEvent((self.row, -1, self.uuid, self.processname, e.args[0])))
+            msg = e.args[0]
+            print("ERROR:", msg)
+            ctr = -1
 
         finally:
-            wx.PostEvent(self.wxObject, ResultEvent((self.row, 100, self.uuid, self.processname, 'Done')))
-            msg = 'Finished ProcessThread'
-            logger.info(msg)
-            print(msg)
-            lock.release()
-            event.clear()
+            if lock.locked():
+                lock.release()
+            if event.is_set():
+                event.clear()
+            wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, msg)))
 
 
 ################################################################################################
@@ -224,13 +233,13 @@ class Controller():
 
     def __loadLogger(self, outputdir=None):
         #### LoggingConfig
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
         homedir = expanduser("~")
         if outputdir is not None and access(outputdir, R_OK):
             homedir = outputdir
-        if not access(join(homedir, "logs"), R_OK):
-            mkdir(join(homedir, "logs"))
-        self.logfile = join(homedir, "logs", 'd2c.log')
+        if not access(join(homedir, ".d2c","logs"), R_OK):
+            mkdir(join(homedir, ".d2c","logs"))
+        self.logfile = join(homedir, ".d2c","logs", 'd2c.log')
         handler = RotatingFileHandler(filename=self.logfile, maxBytes=10000000, backupCount=10)
         formatter = logging.Formatter(
             '[ %(asctime)s %(levelname)-4s ] %(filename)s %(lineno)d : (%(threadName)-9s) %(message)s')

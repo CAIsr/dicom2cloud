@@ -56,7 +56,7 @@ class DCCDocker():
         """
 
         # Check for updates to the docker image
-        container = None
+        containerId = None
         try:
             print('Starting docker')
             self.client.images.pull(self.CONTAINER_NAME)
@@ -73,7 +73,7 @@ class DCCDocker():
             else:
                 raise Exception("Container not created")
         except Exception as e:
-            print(e.args[0])
+            print(e)
 
         return containerId
 
@@ -120,18 +120,16 @@ class DCCDocker():
         """
         #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
         #TODO Replace with a direct copy - otherwise fills up disk
-        strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
+        with tempfile.SpooledTemporaryFile() as tmpfile:
+            strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
 
-        # with tempfile.NamedTemporaryFile() as tmpfile:
-        #     strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
-        #
-        #     for d in strm:
-        #         tmpfile.write(d)
-        #     tmpfile.seek(0)
-        #
-        #     tar = tarfile.open(fileobj=tmpfile)
-        #     tar.extractall(path=outputDir)
-        #     tar.close()
+            for d in strm:
+                tmpfile.write(d)
+            tmpfile.seek(0)
+
+            tar = tarfile.open(fileobj=tmpfile)
+            tar.extractall(path=outputDir)
+            tar.close()
 
 
 if __name__ == '__main__':
