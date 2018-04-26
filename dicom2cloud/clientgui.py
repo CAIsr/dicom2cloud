@@ -73,6 +73,7 @@ class HomePanel(WelcomePanel):
 
 ########################################################################
 class Config(ConfigPanel):
+    # TODO: Add config for multiple processing modules
     def __init__(self, parent):
         super(Config, self).__init__(parent)
         self.parent = parent

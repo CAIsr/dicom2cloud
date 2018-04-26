@@ -30,7 +30,8 @@ class DCCDocker():
     def getStatus(self, container):
         return 1
 
-    def finalizeJob(self, container, outputDir):
+    def finalizeJob(self, container, outputDir,uuid):
+        print('Test docker: finalized')
         return 1
 
 ############################################################################################

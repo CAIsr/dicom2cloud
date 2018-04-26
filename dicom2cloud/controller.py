@@ -189,24 +189,25 @@ class ProcessThread(threading.Thread):
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Converting')))
                 ctr += 10
 
-            # Check that everything ran ok
-            if not self.dcc.getStatus(containerId):
-                raise Exception("ERROR: Docker unable to anonomize the dataset")
+            # Check that everything ran ok (0 = success)
+            if self.dcc.getExitStatus(containerId):
+                raise Exception("ERROR: Docker unable to anonymize the dataset")
 
             # Get the resulting mnc file back to the original directory
-            self.dcc.finalizeJob(containerId, self.inputdir)
-            print('End running Docker')
-            # Upload MNC to server
-            print('Uploading MNC to server')
-            mncfile = join(self.inputdir, self.uuid + '.mnc')
-            if access(mncfile, R_OK):
-                uploaderClass = get_class(self.server)
-                uploader = uploaderClass(self.uuid)
-                uploader.upload(mncfile, self.processname)
-                wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Uploading')))
-                msg = "Uploaded file: %s to %s" % (mncfile, self.server)
-                logging.info(msg)
-            msg = 'Finished Docker Thread'
+            outputfile = self.dcc.finalizeJob(containerId, self.inputdir,self.uuid)
+            print('Output:',outputfile)
+            wx.PostEvent(self.wxObject, ResultEvent((self.row, 100, self.uuid, self.processname, 'Complete')))
+            # Upload MNC to server - TODO AWS or Google cloud processing as separate process
+            # print('Uploading MNC to server')
+            # mncfile = join(self.inputdir, self.uuid + '.mnc')
+            # if access(mncfile, R_OK):
+            #     uploaderClass = get_class(self.server)
+            #     uploader = uploaderClass(self.uuid)
+            #     uploader.upload(mncfile, self.processname)
+            #     wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Uploading')))
+            #     msg = "Uploaded file: %s to %s" % (mncfile, self.server)
+            #     logging.info(msg)
+            msg = 'Finished Docker Thread: %s' % outputfile
             ctr = 100
             print(msg)
             logger.info(msg)
@@ -264,12 +265,6 @@ class Controller():
             if len(filenames) > 0:
                 msg = "Load Process Threads: %s [row: %d]" % (processname, row)
                 print(msg)
-                # # Tar DICOM files to load to container for processing
-                # tarfilename = join(inputdir, uuid + '.tar')
-                # with tarfile.open(tarfilename, "w") as tar:
-                #     for f in filenames:
-                #         tar.add(f)
-                # tar.close()
                 # Run thread
                 t = ProcessThread(wxGui, processname, inputdir, uuid, server, row)
                 t.start()
