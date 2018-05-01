@@ -4,7 +4,6 @@ import datetime
 import importlib
 import logging
 import os
-import tarfile
 import threading
 import time
 from glob import iglob
@@ -178,7 +177,7 @@ class ProcessThread(threading.Thread):
             lock.acquire(True)
             # Convert IMA files to MNC via Docker image
             print('Running Docker image')
-            containerId = self.dcc.startDocker(join(self.inputdir,self.uuid))
+            containerId = self.dcc.startDocker(join(self.inputdir, self.uuid))
             if containerId is None:
                 raise Exception("ERROR: Unable to initialize Docker")
             else:
@@ -194,20 +193,13 @@ class ProcessThread(threading.Thread):
                 raise Exception("ERROR: Docker unable to anonymize the dataset")
 
             # Get the resulting mnc file back to the original directory
-            outputfile = self.dcc.finalizeJob(containerId, self.inputdir,self.uuid)
-            print('Output:',outputfile)
-            wx.PostEvent(self.wxObject, ResultEvent((self.row, 100, self.uuid, self.processname, 'Complete')))
-            # Upload MNC to server - TODO AWS or Google cloud processing as separate process
-            # print('Uploading MNC to server')
-            # mncfile = join(self.inputdir, self.uuid + '.mnc')
-            # if access(mncfile, R_OK):
-            #     uploaderClass = get_class(self.server)
-            #     uploader = uploaderClass(self.uuid)
-            #     uploader.upload(mncfile, self.processname)
-            #     wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Uploading')))
-            #     msg = "Uploaded file: %s to %s" % (mncfile, self.server)
-            #     logging.info(msg)
-            msg = 'Finished Docker Thread: %s' % outputfile
+            outputfile = self.dcc.finalizeJob(containerId, self.inputdir, self.uuid)
+            print('Output:', outputfile)
+            if self.server.lower() != 'none':
+                msg =self.uploadCloud(outputfile)
+            else:
+                msg = 'Done: %s' % outputfile
+
             ctr = 100
             print(msg)
             logger.info(msg)
@@ -222,6 +214,21 @@ class ProcessThread(threading.Thread):
             if event.is_set():
                 event.clear()
             wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, msg)))
+
+    def uploadCloud(self, mncfile):
+        """
+        Send file to cloud for processing
+        :param mncfile:
+        :return:
+        """
+        uploaderClass = get_class(self.server)
+        if uploaderClass is not None:
+            uploader = uploaderClass(self.uuid)
+            uploader.upload(mncfile, self.processname)
+            msg = 'Uploading to server[%s]: %s' % (self.server, mncfile)
+        else:
+            msg ='No Uploader class available'
+        return msg
 
 
 ################################################################################################
@@ -238,9 +245,9 @@ class Controller():
         homedir = expanduser("~")
         if outputdir is not None and access(outputdir, R_OK):
             homedir = outputdir
-        if not access(join(homedir, ".d2c","logs"), R_OK):
-            mkdir(join(homedir, ".d2c","logs"))
-        self.logfile = join(homedir, ".d2c","logs", 'd2c.log')
+        if not access(join(homedir, ".d2c", "logs"), R_OK):
+            mkdir(join(homedir, ".d2c", "logs"))
+        self.logfile = join(homedir, ".d2c", "logs", 'd2c.log')
         handler = RotatingFileHandler(filename=self.logfile, maxBytes=10000000, backupCount=10)
         formatter = logging.Formatter(
             '[ %(asctime)s %(levelname)-4s ] %(filename)s %(lineno)d : (%(threadName)-9s) %(message)s')
@@ -271,7 +278,8 @@ class Controller():
                 msg = "Running Thread: %s" % processname
                 print(msg)
                 # Load to database for remote monitoring
-                self.db.setSeriesProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),inputdir)
+                self.db.setSeriesProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),
+                                         inputdir)
             else:
                 msg = "No files to process"
                 logger.error(msg)
@@ -298,6 +306,7 @@ class Controller():
         # Check if cloud processing is done and update database
         seriesprocesses = self.db.getActiveProcesses()
         for series in seriesprocesses:
+            print("CheckRemote:", series)
             seriesid = series[0]
             server = series[2].lower()
             outputdir = series[6]
@@ -306,18 +315,26 @@ class Controller():
                 outputdir = dirname(files[0])
             # Get uploader class and query
             uploaderClass = get_class(server)
-            uploader = uploaderClass(seriesid)
-            if uploader.isDone():
-                downloadfile = join(outputdir, seriesid, 'download.tar')
-                uploader.download(downloadfile)
-                msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid, downloadfile)
+            if uploaderClass is not None:
+                uploader = uploaderClass(seriesid)
+                if uploader.isDone():
+                    downloadfile = join(outputdir, seriesid, 'download.tar')
+                    uploader.download(downloadfile)
+                    msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid, downloadfile)
+                    print(msg)
+                    self.db.setSeriesProcessFinished(seriesid)
+                    # Remove files in database
+                    #self.db.deleteSeriesData(seriesid)
+                else:
+                    # Still in progress
+                    self.db.setSeriesProcessInprogress(seriesid)
+            else:
+                #assume done
+                msg = 'Series: %s \n\tSTATUS: Complete\n' % seriesid
                 print(msg)
                 self.db.setSeriesProcessFinished(seriesid)
                 # Remove files in database
-                self.db.deleteSeriesData(seriesid)
-            else:
-                # Still in progress
-                self.db.setSeriesProcessInprogress(seriesid)
+                #self.db.deleteSeriesData(seriesid)
 
     def parseDicom(self, wxObject, filelist):
         '''

@@ -165,10 +165,14 @@ class uploadNectar(uploadBase):
 
 def get_class(name):
     """ Get a class from a string name. """
+    uploaders = {'google': uploadGoogle,
+                 'aws': uploadAws,
+                 'nectar': uploadNectar,
+                 'none': None
+                 }
+    if name not in uploaders.keys():
+        raise Exception('Unknown class name: {}'.format(name))
+    return uploaders[name]
 
-    if name in ['google']: return uploadGoogle
-    if name in ['aws']: return uploadAws
-    if name in ['nectar']: return uploadNectar
 
-    raise Exception('Unknown class name: {}'.format(name))
 

@@ -36,14 +36,32 @@ from os.path import join
 
 
 class DCCDocker():
-    def __init__(self):
+    def __init__(self, process=None):
         self.client = docker.from_env()
         db = DBI()
         db.connect()
+        #DEFAULTS
         self.CONTAINER_NAME = db.getServerConfigByName('DOCKER_CONTAINER')
         self.INPUT_TARGET = db.getServerConfigByName('DOCKER_INPUTDIR')
         self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
         self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
+        #Load specific process configs if set
+        if process is not None:
+            container = db.getServerConfigByName(db.getProcessField('container',process))
+            if container is not None:
+                self.CONTAINER_NAME = container
+
+            input = db.getServerConfigByName(db.getProcessField('containerinputdir',process))
+            if input is not None:
+                self.INPUT_TARGET = input
+            outputd = db.getServerConfigByName(db.getProcessField('containeroutputdir',process))
+            if outputd is not None:
+                self.OUTPUT_TARGET = outputd
+
+            ofile = db.getServerConfigByName(db.getProcessField('outputfile',process))
+            if ofile is not None:
+                self.OUTPUT = ofile
+
         db.closeconn()
 
 
@@ -122,9 +140,10 @@ class DCCDocker():
         @return outputfile name
         """
         #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
-        testoutput = '00001_tfl3d1_ns_C_A32.IMA'
-        # returns raw tar datastream
-        datastream, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
+        #testoutput = '00001_tfl3d1_ns_C_A32.IMA'
+        # can copy whole directory or just output file
+        outputfile = join(self.OUTPUT_TARGET,self.OUTPUT)
+        datastream, stat = self.client.api.get_archive(containerId, outputfile)
         print('File retrieved from Docker: ', stat)
         f = BytesIO(datastream.data)
         outfile=join(outputDir,uuid + '.tar')
@@ -133,7 +152,7 @@ class DCCDocker():
         f.close()
         print('Tarfile written to: ', outfile)
         # # Tar DICOM files to load to container for processing
-        tarfiledir = join(outputDir,'processed')
+        tarfiledir = join(outputDir,uuid,'processed')
         with tarfile.open(outfile, "r") as tar:
             tar.extractall(path=tarfiledir)
         tar.close()
