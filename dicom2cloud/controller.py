@@ -163,7 +163,12 @@ class ProcessThread(threading.Thread):
             module = importlib.import_module(self.module_name)
             class_ = getattr(module, self.class_name)
             # Docker Class
-            self.dcc = class_()
+            self.dcc = class_(self.processname)
+            # Record configs to log
+            if hasattr(self.dcc,'CONTAINER_NAME'):
+                msg = "Running Container: %s [input=%s output=%s]" % (self.dcc.CONTAINER_NAME, self.dcc.INPUT_TARGET, join(self.dcc.OUTPUT_TARGET, self.dcc.OUTPUT))
+                print(msg)
+                logging.info(msg)
         else:
             raise Exception('Cannot access Database')
 
@@ -186,7 +191,10 @@ class ProcessThread(threading.Thread):
             while (not self.dcc.checkIfDone(containerId)):
                 time.sleep(1)
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Converting')))
-                ctr += 10
+                ctr += 1
+                #restart for long running
+                if ctr == 100:
+                    ctr = 1
 
             # Check that everything ran ok (0 = success)
             if self.dcc.getExitStatus(containerId):

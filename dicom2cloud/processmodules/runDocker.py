@@ -46,6 +46,7 @@ class DCCDocker():
         self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
         self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
         #Load specific process configs if set
+        self.process = process
         if process is not None:
             container = db.getServerConfigByName(db.getProcessField('container',process))
             if container is not None:
@@ -61,6 +62,7 @@ class DCCDocker():
             ofile = db.getServerConfigByName(db.getProcessField('outputfile',process))
             if ofile is not None:
                 self.OUTPUT = ofile
+
 
         db.closeconn()
 
@@ -152,7 +154,10 @@ class DCCDocker():
         f.close()
         print('Tarfile written to: ', outfile)
         # # Tar DICOM files to load to container for processing
-        tarfiledir = join(outputDir,uuid,'processed')
+        procdir = 'processed'
+        if self.process is not None:
+            procdir += "_" + self.process
+        tarfiledir = join(outputDir,uuid,procdir)
         with tarfile.open(outfile, "r") as tar:
             tar.extractall(path=tarfiledir)
         tar.close()

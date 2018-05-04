@@ -58,6 +58,8 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
     ],
 
     # What does your project relate to?
@@ -75,9 +77,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['dicom', 'numpy', 'pandas',
-            'pydicom', 'docker', 'wxPython', 'google.cloud', 'boto3' ],
-    # dicom==0.9.9.post1   numpy==1.13.1   pandas==0.20.3   pydicom==0.9.9
+    install_requires=['numpy', 'pandas','pydicom', 'docker', 'wxPython', 'google.cloud', 'boto3' ],
 
 
     # If there are data files included in your packages that need to be
