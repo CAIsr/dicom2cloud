@@ -9,14 +9,14 @@ USER 0
 # We need perl to run all the scripts
 RUN yum install -y perl
 
-# This file is missing for some reason.  Copied from minc-widgets/b7dbf3c
-COPY mincanon /opt/minc/bin/mincanon
-
 # Change back to a less privilaged user for execution
 USER neuro
 
 # Copy the script for our processing pipeline
-COPY run_mincanon.sh /home/neuro/run.sh
+COPY run_dcm2mnc.sh /home/neuro/run.sh
+
+# Copy testdata inside the container
+#COPY testdata/ /home/neuro/
 
 # Create a default command for processing the files
 CMD ["/bin/bash", "/home/neuro/run.sh"]
