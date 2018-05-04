@@ -1,8 +1,8 @@
 from __future__ import print_function
 
 import time
-
 import docker
+from os.path import join
 from dicom2cloud.config.dbquery import DBI
 
 
@@ -27,11 +27,13 @@ class DCCDocker():
         print(timer)
         return timer >= self.timeout
 
-    def getStatus(self, container):
-        return 1
+    def getExitStatus(self, container):
+        return 0
 
-    def finalizeJob(self, container, outputDir):
-        return 1
+    def finalizeJob(self, container, outputDir, uuid):
+        print('Test docker: finalized')
+        return join(outputDir,uuid)
+
 
 ############################################################################################
 if __name__ == '__main__':

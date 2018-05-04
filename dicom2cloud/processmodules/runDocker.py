@@ -26,27 +26,44 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+from __future__ import print_function
 import tarfile
 import tempfile
 from dicom2cloud.config.dbquery import DBI
 import docker
+from io import BytesIO
+from os.path import join
 
 
 class DCCDocker():
-    def __init__(self):
+    def __init__(self, process=None):
         self.client = docker.from_env()
         db = DBI()
         db.connect()
+        #DEFAULTS
         self.CONTAINER_NAME = db.getServerConfigByName('DOCKER_CONTAINER')
         self.INPUT_TARGET = db.getServerConfigByName('DOCKER_INPUTDIR')
         self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
         self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
+        #Load specific process configs if set
+        if process is not None:
+            container = db.getServerConfigByName(db.getProcessField('container',process))
+            if container is not None:
+                self.CONTAINER_NAME = container
+
+            input = db.getServerConfigByName(db.getProcessField('containerinputdir',process))
+            if input is not None:
+                self.INPUT_TARGET = input
+            outputd = db.getServerConfigByName(db.getProcessField('containeroutputdir',process))
+            if outputd is not None:
+                self.OUTPUT_TARGET = outputd
+
+            ofile = db.getServerConfigByName(db.getProcessField('outputfile',process))
+            if ofile is not None:
+                self.OUTPUT = ofile
 
         db.closeconn()
-        # self.CONTAINER_NAME = containername  # "ilent2/dicom2cloud"
-        # self.INPUT_TARGET = input  # "/home/neuro/"
-        # self.OUTPUT_TARGET = output  # "/home/neuro/" + self.OUTPUT_FILENAME
+
 
     def startDocker(self, dataset):
         """ Start a new docker instance and copy the data into the container.
@@ -93,11 +110,18 @@ class DCCDocker():
         @param container    The container object returned by startDocker.
         @return done        Returns True if stopped, False if running.
         """
+        rtn = False
+        inspect = self.client.api.diff(containerId)
+        #looking for file: output.mnc
+        for p in inspect:
+            if self.OUTPUT in p['Path']:
+                print(p['Path'])
+                rtn = True
+        return rtn
+        # inspect = self.client.api.inspect_container(containerId)
+        # return inspect['State']['Running'] == False
 
-        inspect = self.client.api.inspect_container(containerId)
-        return inspect['State']['Running'] == False
-
-    def getStatus(self, containerId):
+    def getExitStatus(self, containerId):
         """ Get the status of the docker job.
 
         @param container    The container object returned by startDocker.
@@ -105,31 +129,36 @@ class DCCDocker():
         """
         #TODO - GET TIME inspect['State']['StartedAt'] - inspect['State']['FinishedAt']
 
-        if not self.checkIfDone(containerId):
-            raise Exception("Container not stopped.")
-
         inspect = self.client.api.inspect_container(containerId)
         return inspect['State']['ExitCode']
 
-    def finalizeJob(self, containerId, outputDir):
+    def finalizeJob(self, containerId, outputDir,uuid):
         """ Copy data out of docker and free resources.
 
         @param container    The container object returned by startDocker.
         @param outputDir    Directory name for the output MINC file.
-        @return None
+        @return outputfile name
         """
         #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
-        #TODO Replace with a direct copy - otherwise fills up disk
-        with tempfile.SpooledTemporaryFile() as tmpfile:
-            strm, stat = self.client.api.get_archive(containerId, self.OUTPUT_TARGET)
+        #testoutput = '00001_tfl3d1_ns_C_A32.IMA'
+        # can copy whole directory or just output file
+        outputfile = join(self.OUTPUT_TARGET,self.OUTPUT)
+        datastream, stat = self.client.api.get_archive(containerId, outputfile)
+        print('File retrieved from Docker: ', stat)
+        f = BytesIO(datastream.data)
+        outfile=join(outputDir,uuid + '.tar')
+        with open(outfile, 'wb') as out:
+            out.write(f.read())
+        f.close()
+        print('Tarfile written to: ', outfile)
+        # # Tar DICOM files to load to container for processing
+        tarfiledir = join(outputDir,uuid,'processed')
+        with tarfile.open(outfile, "r") as tar:
+            tar.extractall(path=tarfiledir)
+        tar.close()
+        print('Output written to: ', tarfiledir)
+        return tarfiledir
 
-            for d in strm:
-                tmpfile.write(d)
-            tmpfile.seek(0)
-
-            tar = tarfile.open(fileobj=tmpfile)
-            tar.extractall(path=outputDir)
-            tar.close()
 
 
 if __name__ == '__main__':
@@ -150,9 +179,9 @@ if __name__ == '__main__':
         print('Converting: ', ctr)
         ctr += 5
 
-    # Check that everything ran ok
-    if not dcc.getStatus(containerId):
+    # Check that everything ran ok - returns O if success
+    if dcc.getExitStatus(containerId):
         print("There was an error while anonomizing the dataset.")
 
     # Get the resulting mnc file back to the original directory
-    dcc.finalizeJob(containerId, inputdir)
+    dcc.finalizeJob(containerId, inputdir, uuid)

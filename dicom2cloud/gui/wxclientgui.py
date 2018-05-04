@@ -118,7 +118,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer19 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Upload DICOMs to Cloud", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Process DICOMs", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText85.Wrap( -1 )
 		self.m_staticText85.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
 		
@@ -161,7 +161,7 @@ class ProcessPanel ( wx.Panel ):
 		self.txtCloudserver.Wrap( -1 )
 		bSizer11.Add( self.txtCloudserver, 0, wx.ALL, 5 )
 		
-		m_serverChoices = [ u"AWS", u"Google" ]
+		m_serverChoices = [ u"None", u"AWS", u"Google" ]
 		self.m_server = wx.Choice( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_serverChoices, 0 )
 		self.m_server.SetSelection( 0 )
 		bSizer11.Add( self.m_server, 0, wx.ALL, 5 )
@@ -347,7 +347,7 @@ class FilesPanel ( wx.Panel ):
 		
 		bSizer5 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_staticText23 = wx.StaticText( self, wx.ID_ANY, u"Select Folder for analysis", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText23 = wx.StaticText( self, wx.ID_ANY, u"Select DICOMs for analysis", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText23.Wrap( -1 )
 		self.m_staticText23.SetFont( wx.Font( 14, 71, 90, 90, False, wx.EmptyString ) )
 		

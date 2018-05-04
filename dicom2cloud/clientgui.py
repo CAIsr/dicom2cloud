@@ -73,6 +73,7 @@ class HomePanel(WelcomePanel):
 
 ########################################################################
 class Config(ConfigPanel):
+    # TODO: Add config for multiple processing modules
     def __init__(self, parent):
         super(Config, self).__init__(parent)
         self.parent = parent
@@ -227,7 +228,7 @@ class ProcessRunPanel(ProcessPanel):
             self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
             self.start[seriesid] = time.time()
         elif count < 0:
-            if len(statusmessage) <= 0:
+            if isinstance(statusmessage,str) and len(statusmessage) <= 0:
                 statusmessage = "Unknown"
             if self.m_dataViewListCtrlRunning.GetItemCount() > row:
                 self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
@@ -245,6 +246,7 @@ class ProcessRunPanel(ProcessPanel):
             print(status)
             self.m_dataViewListCtrlRunning.SetValue(100, row=row, col=2)
             self.m_dataViewListCtrlRunning.SetValue("Done " + status, row=row, col=3)
+            self.m_stOutputlog.SetLabelText(statusmessage)
             self.m_btnRunProcess.Enable()
 
     def getFilePanel(self):
@@ -334,7 +336,7 @@ class ProcessRunPanel(ProcessPanel):
                             # self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
                             uuid = generateuid(seriesid)
                             if self.copyseries(uuid, targetdir):
-                                self.m_stOutputlog.SetLabelText("Uploading %s" % seriesid)
+                                self.m_stOutputlog.SetLabelText("Processing Series %s" % seriesid)
                                 self.controller.RunProcess(self, targetdir, uuid, p, server, row)
                                 row = row + 1
 
@@ -473,7 +475,7 @@ class AppMain(wx.Listbook):
         pages = [(HomePanel(self), 'Welcome'),
                  (Config(self), 'Settings'),
                  (FileSelectPanel(self), "DICOM Files"),
-                 (ProcessRunPanel(self), "Run in Cloud"),
+                 (ProcessRunPanel(self), "Process"),
                  (CloudRunPanel(self), "Check Status")]
 
         imID = 0
