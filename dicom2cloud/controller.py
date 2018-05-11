@@ -157,6 +157,7 @@ class ProcessThread(threading.Thread):
         if self.db.conn is not None:
             # Dynamic process module
             pref = self.db.getProcessField('ref', processname)
+            self.outputasfile = self.db.getProcessField('outputfile', processname) #file=1 or folder=0
             self.module_name = self.db.getProcessModule(pref)
             self.class_name = self.db.getProcessClass(pref)
             # Instantiate module
@@ -201,7 +202,7 @@ class ProcessThread(threading.Thread):
                 raise Exception("ERROR: Docker unable to anonymize the dataset")
 
             # Get the resulting mnc file back to the original directory
-            outputfile = self.dcc.finalizeJob(containerId, self.inputdir, self.uuid)
+            outputfile = self.dcc.finalizeJob(containerId, self.inputdir, self.uuid,self.outputasfile)
             print('Output:', outputfile)
             if self.server.lower() != 'none':
                 msg =self.uploadCloud(outputfile)
@@ -275,7 +276,7 @@ class Controller():
         :param row: Row number in progress table in Process Panel
         :return:
         """
-        filenames = self.db.getFiles(uuid)
+        filenames = self.db.getSessionFiles(uuid)
         try:
             if len(filenames) > 0:
                 msg = "Load Process Threads: %s [row: %d]" % (processname, row)
@@ -286,8 +287,7 @@ class Controller():
                 msg = "Running Thread: %s" % processname
                 print(msg)
                 # Load to database for remote monitoring
-                self.db.setSeriesProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),
-                                         inputdir)
+                self.db.setSessionProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(), inputdir)
             else:
                 msg = "No files to process"
                 logger.error(msg)
@@ -308,7 +308,7 @@ class Controller():
         for f in files:
             os.remove(f)
         # remove database entry - dicomdata and dicomfiles
-        self.db.deleteSeriesData(uuid)
+        self.db.deleteSessionData(uuid)
 
     def checkRemote(self):
         # Check if cloud processing is done and update database
@@ -330,9 +330,8 @@ class Controller():
                     uploader.download(downloadfile)
                     msg = 'Series: %s \n\tSTATUS: Complete (%s)\n' % (seriesid, downloadfile)
                     print(msg)
-                    self.db.setSeriesProcessFinished(seriesid)
-                    # Remove files in database
-                    #self.db.deleteSeriesData(seriesid)
+                    self.db.setSessionProcessFinished(seriesid)
+
                 else:
                     # Still in progress
                     self.db.setSeriesProcessInprogress(seriesid)
@@ -340,9 +339,8 @@ class Controller():
                 #assume done
                 msg = 'Series: %s \n\tSTATUS: Complete\n' % seriesid
                 print(msg)
-                self.db.setSeriesProcessFinished(seriesid)
-                # Remove files in database
-                #self.db.deleteSeriesData(seriesid)
+                self.db.setSessionProcessFinished(seriesid)
+
 
     def parseDicom(self, wxObject, filelist):
         '''

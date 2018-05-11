@@ -59,7 +59,7 @@ class DCCDocker():
             if outputd is not None:
                 self.OUTPUT_TARGET = outputd
 
-            ofile = db.getServerConfigByName(db.getProcessField('outputfile',process))
+            ofile = db.getServerConfigByName(db.getProcessField('filename',process))
             if ofile is not None:
                 self.OUTPUT = ofile
 
@@ -134,7 +134,7 @@ class DCCDocker():
         inspect = self.client.api.inspect_container(containerId)
         return inspect['State']['ExitCode']
 
-    def finalizeJob(self, containerId, outputDir,uuid):
+    def finalizeJob(self, containerId, outputDir,uuid,outputasfile):
         """ Copy data out of docker and free resources.
 
         @param container    The container object returned by startDocker.
@@ -144,7 +144,10 @@ class DCCDocker():
         #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
         #testoutput = '00001_tfl3d1_ns_C_A32.IMA'
         # can copy whole directory or just output file
-        outputfile = join(self.OUTPUT_TARGET,self.OUTPUT)
+        if outputasfile:
+            outputfile = join(self.OUTPUT_TARGET,self.OUTPUT)
+        else:
+            outputfile = self.OUTPUT_TARGET
         datastream, stat = self.client.api.get_archive(containerId, outputfile)
         print('File retrieved from Docker: ', stat)
         f = BytesIO(datastream.data)
@@ -189,4 +192,4 @@ if __name__ == '__main__':
         print("There was an error while anonomizing the dataset.")
 
     # Get the resulting mnc file back to the original directory
-    dcc.finalizeJob(containerId, inputdir, uuid)
+    dcc.finalizeJob(containerId, inputdir, uuid,1)

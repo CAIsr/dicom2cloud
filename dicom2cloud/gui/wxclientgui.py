@@ -79,6 +79,9 @@ class ConfigPanel ( wx.Panel ):
 		self.m_btnAdd = wx.Button( self, wx.ID_ANY, u"Add Row", wx.DefaultPosition, wx.DefaultSize, 0 )
 		bSizer17.Add( self.m_btnAdd, 0, wx.ALL, 5 )
 		
+		self.m_btnAddProcess = wx.Button( self, wx.ID_ANY, u"Processes (Developers)", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer17.Add( self.m_btnAddProcess, 0, wx.ALL, 5 )
+		
 		self.m_txtStatus = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_txtStatus.Wrap( -1 )
 		bSizer17.Add( self.m_txtStatus, 0, wx.ALL, 5 )
@@ -94,6 +97,7 @@ class ConfigPanel ( wx.Panel ):
 		# Connect Events
 		self.m_btnSave.Bind( wx.EVT_BUTTON, self.OnSaveConfig )
 		self.m_btnAdd.Bind( wx.EVT_BUTTON, self.OnAddRow )
+		self.m_btnAddProcess.Bind( wx.EVT_BUTTON, self.OnAddProcess )
 	
 	def __del__( self ):
 		pass
@@ -106,6 +110,9 @@ class ConfigPanel ( wx.Panel ):
 	def OnAddRow( self, event ):
 		event.Skip()
 	
+	def OnAddProcess( self, event ):
+		event.Skip()
+	
 
 ###########################################################################
 ## Class ProcessPanel
@@ -114,7 +121,7 @@ class ConfigPanel ( wx.Panel ):
 class ProcessPanel ( wx.Panel ):
 	
 	def __init__( self, parent ):
-		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 508,919 ), style = wx.TAB_TRAVERSAL )
+		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 914,919 ), style = wx.TAB_TRAVERSAL )
 		
 		bSizer19 = wx.BoxSizer( wx.VERTICAL )
 		
@@ -169,6 +176,9 @@ class ProcessPanel ( wx.Panel ):
 		self.m_btnLog = wx.Button( self, wx.ID_ANY, u"View Log file", wx.DefaultPosition, wx.DefaultSize, 0 )
 		bSizer11.Add( self.m_btnLog, 0, wx.ALL, 5 )
 		
+		self.m_btnDocker = wx.Button( self, wx.ID_ANY, u"Launch Docker", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer11.Add( self.m_btnDocker, 0, wx.ALL, 5 )
+		
 		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN", wx.DefaultPosition, wx.Size( 200,50 ), 0 )
 		self.m_btnRunProcess.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
 		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
@@ -205,6 +215,7 @@ class ProcessPanel ( wx.Panel ):
 		# Connect Events
 		self.m_checkListProcess.Bind( wx.EVT_CHECKLISTBOX, self.OnShowDescription )
 		self.m_btnLog.Bind( wx.EVT_BUTTON, self.OnShowLog )
+		self.m_btnDocker.Bind( wx.EVT_BUTTON, self.OnLaunchDocker )
 		self.m_btnRunProcess.Bind( wx.EVT_BUTTON, self.OnRunScripts )
 	
 	def __del__( self ):
@@ -216,6 +227,9 @@ class ProcessPanel ( wx.Panel ):
 		event.Skip()
 	
 	def OnShowLog( self, event ):
+		event.Skip()
+	
+	def OnLaunchDocker( self, event ):
 		event.Skip()
 	
 	def OnRunScripts( self, event ):
@@ -493,6 +507,99 @@ class dlgLogViewer ( wx.Dialog ):
 	
 	# Virtual event handlers, overide them in your derived class
 	def OnLogRefresh( self, event ):
+		event.Skip()
+	
+
+###########################################################################
+## Class dlgProcess
+###########################################################################
+
+class dlgProcess ( wx.Dialog ):
+	
+	def __init__( self, parent ):
+		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Process modules configuration", pos = wx.DefaultPosition, size = wx.DefaultSize, style = wx.DEFAULT_DIALOG_STYLE )
+		
+		self.SetSizeHintsSz( wx.Size( 600,-1 ), wx.DefaultSize )
+		
+		bSizer14 = wx.BoxSizer( wx.VERTICAL )
+		
+		self.m_staticText18 = wx.StaticText( self, wx.ID_ANY, u"Developers can add or edit process info but use with CAUTION", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText18.Wrap( -1 )
+		bSizer14.Add( self.m_staticText18, 0, wx.ALL, 5 )
+		
+		self.m_grid2 = wx.grid.Grid( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.HSCROLL|wx.VSCROLL )
+		
+		# Grid
+		self.m_grid2.CreateGrid( 5, 11 )
+		self.m_grid2.EnableEditing( True )
+		self.m_grid2.EnableGridLines( True )
+		self.m_grid2.EnableDragGridSize( False )
+		self.m_grid2.SetMargins( 0, 0 )
+		
+		# Columns
+		self.m_grid2.EnableDragColMove( False )
+		self.m_grid2.EnableDragColSize( True )
+		self.m_grid2.SetColLabelSize( 30 )
+		self.m_grid2.SetColLabelValue( 0, u"id" )
+		self.m_grid2.SetColLabelValue( 1, u"ref" )
+		self.m_grid2.SetColLabelValue( 2, u"process" )
+		self.m_grid2.SetColLabelValue( 3, u"description" )
+		self.m_grid2.SetColLabelValue( 4, u"module" )
+		self.m_grid2.SetColLabelValue( 5, u"class" )
+		self.m_grid2.SetColLabelValue( 6, u"container" )
+		self.m_grid2.SetColLabelValue( 7, u"containerinputdir" )
+		self.m_grid2.SetColLabelValue( 8, u"containeroutputdir" )
+		self.m_grid2.SetColLabelValue( 9, u"outputfile" )
+		self.m_grid2.SetColLabelValue( 10, u"filename" )
+		self.m_grid2.SetColLabelValue( 11, wx.EmptyString )
+		self.m_grid2.SetColLabelAlignment( wx.ALIGN_CENTRE, wx.ALIGN_CENTRE )
+		
+		# Rows
+		self.m_grid2.EnableDragRowSize( True )
+		self.m_grid2.SetRowLabelSize( 80 )
+		self.m_grid2.SetRowLabelAlignment( wx.ALIGN_CENTRE, wx.ALIGN_CENTRE )
+		
+		# Label Appearance
+		
+		# Cell Defaults
+		self.m_grid2.SetDefaultCellAlignment( wx.ALIGN_LEFT, wx.ALIGN_TOP )
+		bSizer14.Add( self.m_grid2, 0, wx.ALL, 5 )
+		
+		bSizer15 = wx.BoxSizer( wx.HORIZONTAL )
+		
+		self.mbtnSaveProcessChanges = wx.Button( self, wx.ID_ANY, u"Save changes", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer15.Add( self.mbtnSaveProcessChanges, 0, wx.ALL, 5 )
+		
+		self.m_btnAddProcessRow = wx.Button( self, wx.ID_ANY, u"Add New", wx.DefaultPosition, wx.DefaultSize, 0 )
+		bSizer15.Add( self.m_btnAddProcessRow, 0, wx.ALL, 5 )
+		
+		
+		bSizer14.Add( bSizer15, 1, wx.EXPAND, 5 )
+		
+		self.m_status = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_status.Wrap( -1 )
+		bSizer14.Add( self.m_status, 0, wx.ALL, 5 )
+		
+		
+		self.SetSizer( bSizer14 )
+		self.Layout()
+		bSizer14.Fit( self )
+		
+		self.Centre( wx.BOTH )
+		
+		# Connect Events
+		self.mbtnSaveProcessChanges.Bind( wx.EVT_BUTTON, self.OnSaveProcess )
+		self.m_btnAddProcessRow.Bind( wx.EVT_BUTTON, self.OnAddProcessRow )
+	
+	def __del__( self ):
+		pass
+	
+	
+	# Virtual event handlers, overide them in your derived class
+	def OnSaveProcess( self, event ):
+		event.Skip()
+	
+	def OnAddProcessRow( self, event ):
 		event.Skip()
 	
 
