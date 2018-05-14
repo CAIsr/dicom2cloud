@@ -33,5 +33,8 @@ echo "Starting the conversion pipeline"
 cd /home/neuro
 echo "Doing dicom to minc conversion"
 dcm2mnc -clobber -dname ./ -fname temp /home/neuro/* .
+
+#tell python GUI that processing is done!
+touch /home/neuro/processing_done
 exit 0
 
