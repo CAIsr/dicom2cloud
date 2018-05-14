@@ -3,9 +3,11 @@ from __future__ import print_function
 import datetime
 import shutil
 import sys
+
 import time
 from glob import iglob
 from os import W_OK, mkdir, access, walk
+import subprocess
 from os.path import join, isdir, split, exists, basename
 from dicom2cloud.config.dbquery import DBI
 from dicom2cloud.controller_utils import generateuid
@@ -73,7 +75,6 @@ class HomePanel(WelcomePanel):
 
 ########################################################################
 class Config(ConfigPanel):
-    # TODO: Add config for multiple processing modules
     def __init__(self, parent):
         super(Config, self).__init__(parent)
         self.parent = parent
@@ -116,6 +117,12 @@ class Config(ConfigPanel):
 
     def OnAddRow(self, event):
         self.m_gridConfig.AppendRows(1, True)
+
+    def OnAddProcess( self, event ):
+        dlg = ProcessViewer(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
 
 ########################################################################
 
@@ -329,16 +336,23 @@ class ProcessRunPanel(ProcessPanel):
                 # For each process, own thread per fileset
                 row = 0
                 for p in processes:
+                    # one session per process - all selected files included
+                    sessionid = generateuid(time.time())
                     for i in range(0, num_files):
                         if filepanel.m_dataViewListCtrl1.GetToggleValue(i, 0):
                             seriesid = filepanel.m_dataViewListCtrl1.GetValue(i, 6)
                             # for each series, create temp dir and copy files
                             # self.m_stOutputlog.SetLabelText("Copying DICOM data %s ..." % seriesid)
                             uuid = generateuid(seriesid)
-                            if self.copyseries(uuid, targetdir):
-                                self.m_stOutputlog.SetLabelText("Processing Series %s" % seriesid)
-                                self.controller.RunProcess(self, targetdir, uuid, p, server, row)
-                                row = row + 1
+                            if self.copyseries(uuid, join(targetdir, sessionid)):
+                                self.m_stOutputlog.SetLabelText("Copied Series %s" % seriesid)
+                                self.controller.db.setSessionSeries(sessionid, uuid, datetime.datetime.now())
+                                #self.controller.RunProcess(self, targetdir, uuid, p, server, row) # process per series
+
+                    # changed to pass all files in at once
+                    row = row + 1
+                    self.controller.RunProcess(self, targetdir, sessionid, p, server, row)
+                    self.m_stOutputlog.SetLabelText("Session %s" % sessionid)
 
             else:
                 if len(processes) == 0:
@@ -375,6 +389,8 @@ class ProcessRunPanel(ProcessPanel):
         seriesfiles = self.controller.db.getFiles(suuid)
         dest = False
         if seriesfiles is not None and len(seriesfiles) > 0:
+            if not exists(targetdir):
+                mkdir(targetdir)
             dest = join(targetdir, suuid)
             if not exists(dest):
                 mkdir(dest)
@@ -383,6 +399,18 @@ class ProcessRunPanel(ProcessPanel):
                     shutil.copy(f, dest)
         return dest
 
+    def OnLaunchDocker( self, event ):
+        """
+        Attempt to launch docker according to configuration
+        :param event:
+        :return:
+        """
+        dockerlaunchcmd = self.controller.db.getServerConfigByName('DOCKER_LAUNCH')
+        if dockerlaunchcmd is not None:
+            print('Docker launch: ', dockerlaunchcmd)
+            subprocess.call(dockerlaunchcmd) #TODO works in console but not here - May have to hard code or use env?
+        else:
+            self.Parent.Warn('In Config Panel set "DOCKER_LAUNCH" to local command')
 
 #########################################################################
 class LogViewer(dlgLogViewer):
@@ -392,6 +420,49 @@ class LogViewer(dlgLogViewer):
 
     def OnLogRefresh(self, event):
         self.m_textLog.LoadFile(self.logfile)
+
+#########################################################################
+class ProcessViewer(dlgProcess):
+    def __init__(self, parent):
+        super(ProcessViewer, self).__init__(parent)
+        self.dbi = parent.dbi
+        self.loadData()
+
+    def loadData(self):
+        self.dbi.connect()
+        # load config values
+        data = self.dbi.getProcessData()
+        if data is not None:
+            for i in range(len(data)):
+                rownum = i
+                for col in range(len(data[i])):
+                    self.m_grid2.SetCellValue(rownum, col, str(data[i][col]))
+
+        self.dbi.closeconn()
+
+    def OnSaveProcess(self, event):
+        self.dbi.connect()
+        datalist = []
+        data = self.m_grid2.GetTable()
+        for rownum in range(0, data.GetRowsCount()):
+            rowdata = []
+            for col in range(data.GetColsCount()):
+                if not data.IsEmptyCell(rownum, col):
+                    rowdata.append(self.m_grid2.GetCellValue(rownum, col))
+            datalist.append(tuple(rowdata))
+
+        print('Saved settings:', datalist)
+        # Save to DB
+        cnt = self.dbi.setProcessData(datalist)
+
+        # notification
+        msg = "Settings saved: %s" % cnt
+        self.m_status.SetLabelText(msg)
+        self.dbi.closeconn()
+
+    def OnAddProcessRow(self, event):
+        self.m_grid2.AppendRows(1, True)
+
 
 
 ########################################################################
