@@ -1,0 +1,52 @@
+FROM debian:stretch
+
+RUN apt-get update -qq \
+    && apt-get install -y -q wget unzip python3 python-numpy python-nibabel \
+	python-setuptools cython git cmake \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN git clone https://github.com/rordenlab/dcm2niix.git
+WORKDIR /dcm2niix/build
+RUN cmake .. && make
+
+WORKDIR /
+RUN git clone https://github.com/liangfu/bet2.git
+WORKDIR /bet2/build
+RUN cmake .. && make
+
+WORKDIR /
+RUN wget "http://www.neuroimaging.at/media/qsm/TGVQSM-plus.zip"
+RUN unzip /TGVQSM-plus.zip
+WORKDIR /TGVQSM-master-011045626121baa8bfdd6633929974c732ae35e3
+RUN python setup.py install
+
+ENV PATH="/bet2/bin:/dcm2niix/build/bin:${PATH}"
+WORKDIR /
+
+# Heudiconv
+RUN wget https://bootstrap.pypa.io/get-pip.py
+RUN python get-pip.py
+RUN pip install https://github.com/nipy/heudiconv/archive/master.zip
+RUN pip install git+git://github.com/mvdoc/dcmstack@bf/importsys
+
+# make ll work as User-defined instruction
+RUN printf '#!/bin/bash\nls -la' > /usr/bin/ll
+RUN chmod +x /usr/bin/ll
+
+# Create new user: neuro
+RUN useradd --no-user-group --create-home --shell /bin/bash neuro
+
+# Change back to a less privilaged user for execution
+USER neuro
+
+# Copy testdata inside container
+COPY testdata /home/neuro/testdata
+
+# Copy the script for our processing pipeline
+COPY run_qsm.sh /home/neuro/run.sh
+COPY heudiconv_bids_qsm.py /home/neuro/
+
+# Create a default command for processing the files
+CMD ["/bin/bash", "/home/neuro/run.sh"]
+
