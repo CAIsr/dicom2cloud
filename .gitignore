@@ -6,7 +6,9 @@
 .idea/
 *.pyc
 
+venv/
 dist/*
 clinic2cloud.egg-info/*
 build/*
 dummydatabase.txt
+wxFormBuilder_win32

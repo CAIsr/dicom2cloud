@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*- 
 
 ###########################################################################
-## Python code generated with wxFormBuilder (version Jun 17 2015)
+## Python code generated with wxFormBuilder (version May  3 2018)
 ## http://www.wxformbuilder.org/
 ##
-## PLEASE DO "NOT" EDIT THIS FILE!
+## PLEASE DO *NOT* EDIT THIS FILE!
 ###########################################################################
 
 import wx
@@ -26,7 +26,7 @@ class ConfigPanel ( wx.Panel ):
 		
 		self.m_staticText39 = wx.StaticText( self, wx.ID_ANY, u"Configuration Settings", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText39.Wrap( -1 )
-		self.m_staticText39.SetFont( wx.Font( 14, 70, 90, 90, False, wx.EmptyString ) )
+		self.m_staticText39.SetFont( wx.Font( 14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		
 		bSizer16.Add( self.m_staticText39, 0, wx.ALL, 5 )
 		
@@ -70,7 +70,7 @@ class ConfigPanel ( wx.Panel ):
 		bSizer17 = wx.BoxSizer( wx.HORIZONTAL )
 		
 		self.m_btnSave = wx.Button( self, wx.ID_ANY, u"Save", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_btnSave.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
+		self.m_btnSave.SetFont( wx.Font( 12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		self.m_btnSave.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
 		self.m_btnSave.SetBackgroundColour( wx.Colour( 0, 128, 128 ) )
 		
@@ -127,7 +127,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		self.m_staticText85 = wx.StaticText( self, wx.ID_ANY, u"Process DICOMs", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText85.Wrap( -1 )
-		self.m_staticText85.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
+		self.m_staticText85.SetFont( wx.Font( 14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Arial" ) )
 		
 		bSizer19.Add( self.m_staticText85, 0, wx.ALL, 5 )
 		
@@ -140,7 +140,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		self.m_stTitle = wx.StaticText( self, wx.ID_ANY, u"TITLE", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_stTitle.Wrap( -1 )
-		self.m_stTitle.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 70, 90, 92, False, wx.EmptyString ) )
+		self.m_stTitle.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
 		
 		bSizer29.Add( self.m_stTitle, 0, wx.ALL, 5 )
 		
@@ -180,7 +180,7 @@ class ProcessPanel ( wx.Panel ):
 		bSizer11.Add( self.m_btnDocker, 0, wx.ALL, 5 )
 		
 		self.m_btnRunProcess = wx.Button( self, wx.ID_ANY, u"RUN", wx.DefaultPosition, wx.Size( 200,50 ), 0 )
-		self.m_btnRunProcess.SetFont( wx.Font( 12, 70, 90, 90, False, wx.EmptyString ) )
+		self.m_btnRunProcess.SetFont( wx.Font( 12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		self.m_btnRunProcess.SetForegroundColour( wx.Colour( 255, 255, 0 ) )
 		self.m_btnRunProcess.SetBackgroundColour( wx.Colour( 64, 128, 128 ) )
 		self.m_btnRunProcess.Enable( False )
@@ -249,7 +249,7 @@ class CloudPanel ( wx.Panel ):
 		
 		self.m_staticText18 = wx.StaticText( self, wx.ID_ANY, u"Cloud Processing Status", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText18.Wrap( -1 )
-		self.m_staticText18.SetFont( wx.Font( 14, 74, 90, 90, False, "Arial" ) )
+		self.m_staticText18.SetFont( wx.Font( 14, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, "Arial" ) )
 		
 		bSizer1.Add( self.m_staticText18, 0, wx.ALIGN_LEFT|wx.ALL, 5 )
 		
@@ -258,7 +258,7 @@ class CloudPanel ( wx.Panel ):
 		
 		self.m_staticText58 = wx.StaticText( self, wx.ID_ANY, u"Click update to refresh status of files processing in the cloud", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_LEFT )
 		self.m_staticText58.Wrap( 650 )
-		self.m_staticText58.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 71, 93, 90, False, wx.EmptyString ) )
+		self.m_staticText58.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		
 		bSizer1.Add( self.m_staticText58, 0, wx.ALL|wx.EXPAND, 5 )
 		
@@ -271,7 +271,7 @@ class CloudPanel ( wx.Panel ):
 		bSizer16.Add( self.m_btnCompareRun, 0, wx.ALL, 5 )
 		
 		self.m_button14 = wx.Button( self, wx.ID_ANY, u"Clear Selected Data", wx.DefaultPosition, wx.DefaultSize, 0 )
-		self.m_button14.SetToolTipString( u"Remove data from processing database" )
+		self.m_button14.SetToolTip( u"Remove data from processing database" )
 		
 		bSizer16.Add( self.m_button14, 0, wx.ALL, 5 )
 		
@@ -318,7 +318,7 @@ class WelcomePanel ( wx.Panel ):
 	def __init__( self, parent ):
 		wx.Panel.__init__ ( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 688,763 ), style = wx.TAB_TRAVERSAL )
 		
-		self.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 70, 90, 90, False, wx.EmptyString ) )
+		self.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		self.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_INFOBK ) )
 		self.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOWTEXT ) )
 		
@@ -326,7 +326,7 @@ class WelcomePanel ( wx.Panel ):
 		
 		self.m_staticText23 = wx.StaticText( self, wx.ID_ANY, u"Dicom 2 Cloud", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText23.Wrap( -1 )
-		self.m_staticText23.SetFont( wx.Font( 14, 71, 90, 92, False, wx.EmptyString ) )
+		self.m_staticText23.SetFont( wx.Font( 14, wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
 		
 		bSizer18.Add( self.m_staticText23, 0, wx.ALIGN_CENTER|wx.ALL, 5 )
 		
@@ -363,13 +363,13 @@ class FilesPanel ( wx.Panel ):
 		
 		self.m_staticText23 = wx.StaticText( self, wx.ID_ANY, u"Select DICOMs for analysis", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText23.Wrap( -1 )
-		self.m_staticText23.SetFont( wx.Font( 14, 71, 90, 90, False, wx.EmptyString ) )
+		self.m_staticText23.SetFont( wx.Font( 14, wx.FONTFAMILY_DECORATIVE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		
 		bSizer5.Add( self.m_staticText23, 0, wx.ALL, 5 )
 		
 		self.m_staticText25 = wx.StaticText( self, wx.ID_ANY, u"Browse and/or Drag N Drop to select folder containing patient DICOM files then click select the required series. ", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText25.Wrap( -1 )
-		self.m_staticText25.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), 70, 93, 90, False, wx.EmptyString ) )
+		self.m_staticText25.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
 		
 		bSizer5.Add( self.m_staticText25, 0, wx.ALL, 5 )
 		
@@ -473,13 +473,13 @@ class dlgLogViewer ( wx.Dialog ):
 	def __init__( self, parent ):
 		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Log Viewer", pos = wx.DefaultPosition, size = wx.DefaultSize, style = wx.DEFAULT_DIALOG_STYLE )
 		
-		self.SetSizeHintsSz( wx.DefaultSize, wx.DefaultSize )
+		self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 		
 		bSizer12 = wx.BoxSizer( wx.VERTICAL )
 		
 		self.m_staticText35 = wx.StaticText( self, wx.ID_ANY, u"Processing Log", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText35.Wrap( -1 )
-		self.m_staticText35.SetFont( wx.Font( 12, 70, 90, 92, False, wx.EmptyString ) )
+		self.m_staticText35.SetFont( wx.Font( 12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, wx.EmptyString ) )
 		
 		bSizer12.Add( self.m_staticText35, 0, wx.ALL, 5 )
 		
@@ -519,7 +519,7 @@ class dlgProcess ( wx.Dialog ):
 	def __init__( self, parent ):
 		wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Process modules configuration", pos = wx.DefaultPosition, size = wx.DefaultSize, style = wx.DEFAULT_DIALOG_STYLE )
 		
-		self.SetSizeHintsSz( wx.Size( 600,-1 ), wx.DefaultSize )
+		self.SetSizeHints( wx.Size( 600,-1 ), wx.DefaultSize )
 		
 		bSizer14 = wx.BoxSizer( wx.VERTICAL )
 		
