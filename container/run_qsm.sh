@@ -28,13 +28,35 @@
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-echo "Starting the conversion pipeline"
+echo "Starting the qsm pipeline"
 
 cd /home/neuro
-echo "Doing dicom to minc conversion"
-dcm2mnc -clobber -dname ./ -fname temp /home/neuro/* .
 
-#tell python GUI that processing is done!
-touch /home/neuro/processing_done
+echo "Doing QSM processing"
+directory=`ls -d */`;
+
+echo "found this directory:"
+echo $directory
+
+ls $directory
+
+heudiconv -d '{subject}/*/*' -s $directory -f /home/neuro/heudiconv_bids_qsm.py
+
+#dcm2niix -o ./ -f magnitude /home/neuro/testdata/GR_M_5_QSM_p2_1mmIso_TE20/
+
+#dcm2niix -o ./ -f phase GR_P_6_QSM_p2_1mmIso_TE20/
+
+#bet2 magnitude.nii magnitude_bet2
+
+#tgv_qsm -p phase.nii -m magnitude_bet2_mask.nii.gz -f 2.89 -t 0.02 -s -o qsm
+
+# Create outputfile to tell GUI that we are done inside the container with this session
+touch done
+
+
+ll /home/neuro
+ll /home/neuro/$directory
+
+# Return 0 when everything went ok
 exit 0
 

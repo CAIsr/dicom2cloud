@@ -16,7 +16,7 @@ USER neuro
 COPY run_dcm2mnc.sh /home/neuro/run.sh
 
 # Copy testdata inside the container
-#COPY testdata/ /home/neuro/
+COPY testdata/ /home/neuro/
 
 # Create a default command for processing the files
 CMD ["/bin/bash", "/home/neuro/run.sh"]
