@@ -6,6 +6,7 @@
 .idea/
 *.pyc
 
+venv/
 dist/*
 clinic2cloud.egg-info/*
 build/*
