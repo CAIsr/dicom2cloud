@@ -78,8 +78,13 @@ class DCCDocker():
         containerId = None
         try:
             print('Starting docker')
-            self.client.images.pull(self.CONTAINER_NAME)
-            container = self.client.api.create_container(self.CONTAINER_NAME)
+            containername = self.CONTAINER_NAME
+            if not containername.contains(':'):
+                containername += ':latest'
+            print('Pulling docker image: ', containername)
+            self.client.images.pull(containername)
+            print('Image pulled')
+            container = self.client.api.create_container(containername)
             if container is not None:
                 containerId = container['Id']
                 print('created container:', containerId)
