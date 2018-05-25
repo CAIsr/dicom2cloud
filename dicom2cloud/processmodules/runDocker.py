@@ -78,8 +78,8 @@ class DCCDocker():
         containerId = None
         try:
             print('Starting docker')
-            containername = self.CONTAINER_NAME
-            if not containername.contains(':'):
+            containername = str(self.CONTAINER_NAME)
+            if not ':' in containername:
                 containername += ':latest'
             print('Pulling docker image: ', containername)
             self.client.images.pull(containername)
