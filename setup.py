@@ -1,109 +1,95 @@
-""" PIP setup module for dicom2cloud system
+'''
+    QBI Auto Analysis APP: setup.py (Windows 64bit MSI)
+    *******************************************************************************
+    Copyright (C) 2017  QBI Software, The University of Queensland
 
-Licence: BSD 2-clause
-Copyright 2017 Dicom2cloud Team
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-"""
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+'''
+#
+# Step 1. Build first
+#   python setup.py build
+# View build dir contents
+# Step 2. Create MSI distribution (Windows)
+#   python setup.py bdist_msi
+# View dist dir contents
+####
+# Issues with scipy and cx-freeze -> https://stackoverflow.com/questions/32432887/cx-freeze-importerror-no-module-named-scipy
+# 1. changed cx_Freeze/hooks.py scipy.lib to scipy._lib (line 560)
+# then run setup.py build
+# 2. changed scipy/spatial cKDTree.cp35-win_amd64.pyd to ckdtree.cp35-win_amd64.pyd
+# 3. change Plot.pyc to plot.pyc in multiprocessing
+# test with exe
+# then run bdist_msi
+# create 64bit from 32bit python with python setup.py build --plat-name=win-amd64
+# NB To add Shortcut working dir - change cx_freeze/windist.py Line 61 : last None - > 'TARGETDIR'
+import os
+import shutil
+import sys
+from os.path import join
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
+from cx_Freeze import setup, Executable
 
-here = path.abspath(path.dirname(__file__))
+from App import __version__
 
-# Get the long description from the README file
-with open(path.join(here, 'README'), encoding='utf-8') as f:
-    long_description = f.read()
+application_title = 'Dicom2Cloud Application'
+main_python_file = join('dicom2cloud','clientgui.py')
+venvpython = join(sys.prefix,'Lib','site-packages')
+mainpython = "D:\\Programs\\Python35"
+
+os.environ['TCL_LIBRARY'] = join(mainpython, 'tcl', 'tcl8.6')
+os.environ['TK_LIBRARY'] = join(mainpython, 'tcl', 'tk8.6')
+base = None
+if sys.platform == 'win32':
+    base = 'Win32GUI'
+ufuncs_version='_ufuncs.cp36-win_amd64.pyd'
+build_exe_options = {
+    'includes': ['idna.idnadata', "numpy", "plotly","pandas", "packaging.version","packaging.specifiers", "packaging.requirements","appdirs",'scipy.spatial.cKDTree'],
+    'excludes': ['PyQt4', 'PyQt5','boto'],
+    'packages': ['sqlite3','scipy', 'numpy.core._methods', 'numpy.lib.format', 'plotly','wx'],
+    'include_files': ['autoanalysis/',join(mainpython, 'DLLs', 'sqlite3.dll'),
+                      #join(venvpython, 'seaborn', 'external'),
+                      #join(mainpython, 'DLLs', 'tcl86t.dll'),
+                      #join(mainpython, 'DLLs', 'tk86t.dll'),
+                      (join(venvpython, 'scipy', 'special', ufuncs_version), '_ufuncs.pyd')],
+    'include_msvcr': 1
+
+}
+bdist_msi_options = {
+    "upgrade_code": "{175FE673-CF61-416B-9C82-EF811886165D}" #get uid from first installation regedit
+    }
+# MSDAnalysis HKEY_USERS\S-1-5-21-2111889174-1506992555-1484156688-1004\Software\Microsoft\Windows\CurrentVersion\Search\RecentApps\{8077FF32-9BEE-4769-9630-736FB8A49026}
 
 setup(
-    name='dicom2cloud',
-
-    # Versions should comply with PEP440.  For a discussion on single-sourcing
-    # the version across setup.py and the project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9',
-
-    description=('Platform independent GUI for anonymizing/uploading '
-		'brain scans to an image processing cloud instance'),
-    long_description=long_description,
-
-    # The project's main homepage.
-    url='https://github.com/CAIsr/dicom2cloud',
-
-    # Author details
-    author='The Dicom2cloud Team',
-    author_email='steffen.bollmann@cai.uq.edu.au',
-
-    # Choose your license
-    license='BSD-2',
-
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
-
-        # Indicate who your project is intended for
-        'Intended Audience :: Healthcare Industry',
-        'Topic :: Scientific/Engineering :: Medical Science Apps.',
-
-        # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: BSD License',
-
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-    ],
-
-    # What does your project relate to?
-    keywords='image processing mri',
-
-    # You can just specify the packages manually here if your project is
-    # simple. Or you can use find_packages().
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-
-    # Alternatively, if you want to distribute just a my_module.py, uncomment
-    # this:
-    #   py_modules=["my_module"],
-
-    # List run-time dependencies here.  These will be installed by pip when
-    # your project is installed. For an analysis of "install_requires" vs pip's
-    # requirements files see:
-    # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy', 'pandas','pydicom', 'docker', 'wxPython', 'google.cloud', 'boto3' ],
-
-
-    # If there are data files included in your packages that need to be
-    # installed, specify them here.  If using Python 2.6 or less, then these
-    # have to be included in MANIFEST.in as well.
-    #package_data={
-    #    'sample': ['package_data.dat'],
-    #},
-
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages. See:
-    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-    #data_files=[('my_data', ['data/data_file'])],
-
-    include_package_data=True,
-
-    python_requires='~=2.7',
-
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
-    entry_points={
-        'console_scripts': [
-            'dicom2cloud = dicom2cloud.clientgui:main',
-        ],
-    },
+    name=application_title,
+    version=__version__,
+    description='Auto analysis of synaptic vesicle particle tracking data (Anggono,QBI)',
+    long_description=open('README.md').read(),
+    author='Liz Cooper-Williams, QBI',
+    author_email='e.cooperwilliams@uq.edu.au',
+    maintainer='QBI Custom Software, UQ',
+    maintainer_email='qbi-dev-admin@uq.edu.au',
+    url='http://github.com/QBI-Software/AutoAnalysis_SynapticVesicles',
+    license='GNU General Public License (GPL)',
+    options={'build_exe': build_exe_options, 'bdist_msi': bdist_msi_options},
+    executables=[Executable(main_python_file,
+                            base=base,
+                            targetName='autoanalysis_sv.exe',
+                            icon='autoanalysis/resources/newplot.ico',
+                            shortcutName=application_title,
+                            shortcutDir='DesktopFolder'
+                            )]
 )
 
+#Rename ckdtree
+os_version='exe.win-amd64-3.6'
+ckd_version= 'cKDTree.cp36-win_amd64.pyd'
+shutil.move(join('build',os_version,'lib','scipy','spatial',ckd_version), join('build',os_version,'lib','scipy','spatial','ckdtree.pyd'))
+shutil.copyfile(join('build',os_version,'lib','scipy','spatial','ckdtree.pyd'), join('build',os_version,'lib','scipy','spatial',ckd_version))
