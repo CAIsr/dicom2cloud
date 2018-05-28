@@ -192,7 +192,7 @@ class ProcessPanel ( wx.Panel ):
 		
 		bSizer21 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_dataViewListCtrlRunning = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE|wx.VSCROLL )
+		self.m_dataViewListCtrlRunning = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE )
 		self.m_dataViewListCtrlRunning.SetMinSize( wx.Size( -1,400 ) )
 		
 		self.m_dataViewListColumnProcess = self.m_dataViewListCtrlRunning.AppendTextColumn( u"Process" )
@@ -278,7 +278,7 @@ class CloudPanel ( wx.Panel ):
 		
 		bSizer1.Add( bSizer16, 1, wx.EXPAND, 5 )
 		
-		self.m_dataViewListCtrlCloud = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE|wx.VSCROLL )
+		self.m_dataViewListCtrlCloud = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.dataview.DV_ROW_LINES|wx.FULL_REPAINT_ON_RESIZE )
 		self.m_dataViewListCtrlCloud.SetMinSize( wx.Size( 650,500 ) )
 		
 		self.m_columnSelect = self.m_dataViewListCtrlCloud.AppendToggleColumn( u"Select" )
@@ -333,7 +333,7 @@ class WelcomePanel ( wx.Panel ):
 		self.m_staticline2 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
 		bSizer18.Add( self.m_staticline2, 0, wx.EXPAND |wx.ALL, 5 )
 		
-		self.m_richText1 = wx.richtext.RichTextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_READONLY|wx.NO_BORDER|wx.VSCROLL|wx.WANTS_CHARS, wx.DefaultValidator, u"welcome" )
+		self.m_richText1 = wx.richtext.RichTextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_READONLY|wx.NO_BORDER|wx.WANTS_CHARS, wx.DefaultValidator, u"welcome" )
 		self.m_richText1.SetForegroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_HIGHLIGHTTEXT ) )
 		self.m_richText1.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOWTEXT ) )
 		
@@ -417,7 +417,7 @@ class FilesPanel ( wx.Panel ):
 		
 		bSizer18 = wx.BoxSizer( wx.VERTICAL )
 		
-		self.m_dataViewListCtrl1 = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.Size( -1,-1 ), wx.dataview.DV_MULTIPLE|wx.HSCROLL|wx.VSCROLL )
+		self.m_dataViewListCtrl1 = wx.dataview.DataViewListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.Size( -1,-1 ), wx.dataview.DV_MULTIPLE )
 		self.m_dataViewListCtrl1.SetMinSize( wx.Size( -1,300 ) )
 		
 		self.col_selected = self.m_dataViewListCtrl1.AppendToggleColumn( u"Select" )

@@ -7,7 +7,7 @@ from dicom2cloud.config.dbquery import DBI
 
 
 class DCCDocker():
-    def __init__(self):
+    def __init__(self,process=None):
         self.client = docker.from_env()
         db = DBI()
         db.connect()

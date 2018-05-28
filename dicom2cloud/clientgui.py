@@ -14,7 +14,7 @@ from dicom2cloud.controller_utils import generateuid
 from dicom2cloud.controller import EVT_DATA, EVT_RESULT, Controller
 from dicom2cloud.gui.wxclientgui import *
 
-__version__ = '0.1.alpha'
+__version__ = '1.0.0'
 
 global_series = {}
 
@@ -584,20 +584,6 @@ class AppMain(wx.Listbook):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def OnQuit(self, e):
-        self.Close()
-
-    def OnCloseWindow(self, e):
-
-        dial = wx.MessageDialog(None, 'Are you sure you want to quit?', 'Question',
-                                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-
-        ret = dial.ShowModal()
-
-        if ret == wx.ID_YES:
-            self.Destroy()
-        else:
-            e.Veto()
 
 
 ########################################################################
@@ -614,8 +600,7 @@ class ClinicApp(wx.Frame):
                           size=(700, 700)
                           )
 
-        # self.timer = wx.Timer(self)
-        # self.Bind(wx.EVT_TIMER, self.update, self.timer)
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         panel = wx.Panel(self)
 
         notebook = AppMain(panel)
@@ -626,7 +611,19 @@ class ClinicApp(wx.Frame):
         self.Center(wx.BOTH)
         self.Show()
 
+    def OnCloseWindow(self, e):
 
+        dial = wx.MessageDialog(None, 'Are you sure you want to quit?', 'Question',
+                                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+
+        ret = dial.ShowModal()
+
+        if ret == wx.ID_YES:
+            self.Destroy()
+        else:
+            e.Veto()
+
+# ----------------------------------------------------------------------
 def main():
     app = wx.App()
     frame = ClinicApp()
