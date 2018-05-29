@@ -2,16 +2,16 @@ from __future__ import print_function
 
 import datetime
 import shutil
+import subprocess
 import sys
-
 import time
 from glob import iglob
 from os import W_OK, mkdir, access, walk
-import subprocess
 from os.path import join, isdir, split, exists, basename
+
 from dicom2cloud.config.dbquery import DBI
-from dicom2cloud.controller_utils import generateuid
 from dicom2cloud.controller import EVT_DATA, EVT_RESULT, Controller
+from dicom2cloud.controller_utils import generateuid
 from dicom2cloud.gui.wxclientgui import *
 
 __version__ = '1.0.0'
@@ -83,10 +83,10 @@ class Config(ConfigPanel):
 
     def OnLoadData(self):
         self.dbi.connect()
-        #load config values
+        # load config values
         conf = self.dbi.getServerConfig()
         if conf is not None:
-            rownum=0
+            rownum = 0
             for k in conf.keys():
                 self.m_gridConfig.SetCellValue(rownum, 0, k)
                 self.m_gridConfig.SetCellValue(rownum, 1, conf[k][0])
@@ -95,11 +95,10 @@ class Config(ConfigPanel):
                 rownum += 1
         self.dbi.closeconn()
 
-
     def OnSaveConfig(self, event):
         self.dbi.connect()
-        #configid = self.cboConfigid.GetValue()
-        configlist=[]
+        # configid = self.cboConfigid.GetValue()
+        configlist = []
         data = self.m_gridConfig.GetTable()
         for rownum in range(0, data.GetRowsCount()):
             if not data.IsEmptyCell(rownum, 0):
@@ -110,7 +109,7 @@ class Config(ConfigPanel):
         # Save to DB
         cnt = self.dbi.addServerConfig(configlist)
 
-        #notification
+        # notification
         msg = "Settings saved: %s" % cnt
         self.m_txtStatus.SetLabelText(msg)
         self.dbi.closeconn()
@@ -118,7 +117,7 @@ class Config(ConfigPanel):
     def OnAddRow(self, event):
         self.m_gridConfig.AppendRows(1, True)
 
-    def OnAddProcess( self, event ):
+    def OnAddProcess(self, event):
         dlg = ProcessViewer(self)
         dlg.ShowModal()
         dlg.Destroy()
@@ -188,7 +187,6 @@ class FileSelectPanel(FilesPanel):
         allfiles = [y for x in walk(inputdir) for y in iglob(join(x[0], '*.IMA'))]
         self.controller.parseDicom(self, allfiles)
 
-
     def OnSelectall(self, event):
         for i in range(0, self.m_dataViewListCtrl1.GetItemCount()):
             self.m_dataViewListCtrl1.SetToggleValue(event.GetSelection(), i, 0)
@@ -235,7 +233,7 @@ class ProcessRunPanel(ProcessPanel):
             self.m_dataViewListCtrlRunning.AppendItem([process, seriesid, count, "Pending"])
             self.start[seriesid] = time.time()
         elif count < 0:
-            if isinstance(statusmessage,str) and len(statusmessage) <= 0:
+            if isinstance(statusmessage, str) and len(statusmessage) <= 0:
                 statusmessage = "Unknown"
             if self.m_dataViewListCtrlRunning.GetItemCount() > row:
                 self.m_dataViewListCtrlRunning.SetValue("ERROR: " + statusmessage, row=row, col=3)
@@ -347,7 +345,7 @@ class ProcessRunPanel(ProcessPanel):
                             if self.copyseries(uuid, join(targetdir, sessionid)):
                                 self.m_stOutputlog.SetLabelText("Copied Series %s" % seriesid)
                                 self.controller.db.setSessionSeries(sessionid, uuid, datetime.datetime.now())
-                                #self.controller.RunProcess(self, targetdir, uuid, p, server, row) # process per series
+                                # self.controller.RunProcess(self, targetdir, uuid, p, server, row) # process per series
 
                     # changed to pass all files in at once
                     row = row + 1
@@ -399,7 +397,7 @@ class ProcessRunPanel(ProcessPanel):
                     shutil.copy(f, dest)
         return dest
 
-    def OnLaunchDocker( self, event ):
+    def OnLaunchDocker(self, event):
         """
         Attempt to launch docker according to configuration
         :param event:
@@ -408,9 +406,10 @@ class ProcessRunPanel(ProcessPanel):
         dockerlaunchcmd = self.controller.db.getServerConfigByName('DOCKER_LAUNCH')
         if dockerlaunchcmd is not None:
             print('Docker launch: ', dockerlaunchcmd)
-            subprocess.call(dockerlaunchcmd) #TODO works in console but not here - May have to hard code or use env?
+            subprocess.call(dockerlaunchcmd)  # TODO works in console but not here - May have to hard code or use env?
         else:
             self.Parent.Warn('In Config Panel set "DOCKER_LAUNCH" to local command')
+
 
 #########################################################################
 class LogViewer(dlgLogViewer):
@@ -420,6 +419,7 @@ class LogViewer(dlgLogViewer):
 
     def OnLogRefresh(self, event):
         self.m_textLog.LoadFile(self.logfile)
+
 
 #########################################################################
 class ProcessViewer(dlgProcess):
@@ -464,7 +464,6 @@ class ProcessViewer(dlgProcess):
         self.m_grid2.AppendRows(1, True)
 
 
-
 ########################################################################
 class CloudRunPanel(CloudPanel):
     def __init__(self, parent):
@@ -505,7 +504,7 @@ class CloudRunPanel(CloudPanel):
         :param event:
         :return:
         """
-        deleteitems =[]
+        deleteitems = []
         for i in range(self.m_dataViewListCtrlCloud.GetItemCount()):
             if self.m_dataViewListCtrlCloud.GetToggleValue(i, 0):
                 series = self.m_dataViewListCtrlCloud.GetValue(i, 1)
@@ -585,7 +584,6 @@ class AppMain(wx.Listbook):
         dlg.Destroy()
 
 
-
 ########################################################################
 class ClinicApp(wx.Frame):
     """
@@ -622,6 +620,7 @@ class ClinicApp(wx.Frame):
             self.Destroy()
         else:
             e.Veto()
+
 
 # ----------------------------------------------------------------------
 def main():

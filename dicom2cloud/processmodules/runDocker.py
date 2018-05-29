@@ -27,12 +27,13 @@
 # WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 from __future__ import print_function
+
 import tarfile
-import tempfile
-from dicom2cloud.config.dbquery import DBI
-import docker
 from io import BytesIO
-from os.path import join
+
+import docker
+
+from dicom2cloud.config.dbquery import DBI
 
 
 class DCCDocker():
@@ -40,32 +41,30 @@ class DCCDocker():
         self.client = docker.from_env()
         db = DBI()
         db.connect()
-        #DEFAULTS
+        # DEFAULTS
         self.CONTAINER_NAME = db.getServerConfigByName('DOCKER_CONTAINER')
         self.INPUT_TARGET = db.getServerConfigByName('DOCKER_INPUTDIR')
         self.OUTPUT_TARGET = db.getServerConfigByName('DOCKER_OUTPUTDIR')
         self.OUTPUT = db.getServerConfigByName('DOCKER_OUTPUTFILE')
-        #Load specific process configs if set
+        # Load specific process configs if set
         self.process = process
         if process is not None:
-            container = db.getServerConfigByName(db.getProcessField('container',process))
+            container = db.getServerConfigByName(db.getProcessField('container', process))
             if container is not None:
                 self.CONTAINER_NAME = container
 
-            input = db.getServerConfigByName(db.getProcessField('containerinputdir',process))
+            input = db.getServerConfigByName(db.getProcessField('containerinputdir', process))
             if input is not None:
                 self.INPUT_TARGET = input
-            outputd = db.getServerConfigByName(db.getProcessField('containeroutputdir',process))
+            outputd = db.getServerConfigByName(db.getProcessField('containeroutputdir', process))
             if outputd is not None:
                 self.OUTPUT_TARGET = outputd
 
-            ofile = db.getServerConfigByName(db.getProcessField('filename',process))
+            ofile = db.getServerConfigByName(db.getProcessField('filename', process))
             if ofile is not None:
                 self.OUTPUT = ofile
 
-
         db.closeconn()
-
 
     def startDocker(self, dataset):
         """ Start a new docker instance and copy the data into the container.
@@ -90,7 +89,7 @@ class DCCDocker():
                 print('created container:', containerId)
                 with docker.utils.tar(dataset) as tar:
                     rtn = self.client.api.put_archive(containerId, self.INPUT_TARGET, tar)
-                #self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
+                # self.client.api.put_archive(container, self.INPUT_TARGET, tarfile)
                 print('loaded archive')
                 self.client.api.start(containerId)
                 print('container is running')
@@ -119,7 +118,7 @@ class DCCDocker():
         """
         rtn = False
         inspect = self.client.api.diff(containerId)
-        #looking for file: output.mnc
+        # looking for file: output.mnc
         for p in inspect:
             if self.OUTPUT in p['Path']:
                 print(p['Path'])
@@ -134,29 +133,29 @@ class DCCDocker():
         @param container    The container object returned by startDocker.
         @return jobStatus   Returns 0 if docker ran successfully.
         """
-        #TODO - GET TIME inspect['State']['StartedAt'] - inspect['State']['FinishedAt']
+        # TODO - GET TIME inspect['State']['StartedAt'] - inspect['State']['FinishedAt']
 
         inspect = self.client.api.inspect_container(containerId)
         return inspect['State']['ExitCode']
 
-    def finalizeJob(self, containerId, outputDir,uuid,outputasfile):
+    def finalizeJob(self, containerId, outputDir, uuid, outputasfile):
         """ Copy data out of docker and free resources.
 
         @param container    The container object returned by startDocker.
         @param outputDir    Directory name for the output MINC file.
         @return outputfile name
         """
-        #stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
-        #testoutput = '00001_tfl3d1_ns_C_A32.IMA'
+        # stat {u'linkTarget': u'', u'mode': 2147484096L, u'mtime': u'2018-04-20T06:10:52.56896119Z', u'name': u'neuro', u'size': 20480}
+        # testoutput = '00001_tfl3d1_ns_C_A32.IMA'
         # can copy whole directory or just output file
         if outputasfile:
-            outputfile = join(self.OUTPUT_TARGET,self.OUTPUT)
+            outputfile = join(self.OUTPUT_TARGET, self.OUTPUT)
         else:
             outputfile = self.OUTPUT_TARGET
         datastream, stat = self.client.api.get_archive(containerId, outputfile)
         print('File retrieved from Docker: ', stat)
         f = BytesIO(datastream.data)
-        outfile=join(outputDir,uuid + '.tar')
+        outfile = join(outputDir, uuid + '.tar')
         with open(outfile, 'wb') as out:
             out.write(f.read())
         f.close()
@@ -165,7 +164,7 @@ class DCCDocker():
         procdir = 'processed'
         if self.process is not None:
             procdir += "_" + self.process
-        tarfiledir = join(outputDir,uuid,procdir)
+        tarfiledir = join(outputDir, uuid, procdir)
         with tarfile.open(outfile, "r") as tar:
             tar.extractall(path=tarfiledir)
         tar.close()
@@ -173,17 +172,16 @@ class DCCDocker():
         return tarfiledir
 
 
-
 if __name__ == '__main__':
     import time
-    from os.path import dirname,join
+    from os.path import join
 
     inputdir = 'D:\\Data\\mridata\\exampleData\\output'
-    uuid ='ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f'
-    #tarfile = "ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f.tar"
+    uuid = 'ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f'
+    # tarfile = "ba3ef915bd7b885f3fffa433743451d1afa7d772027398353fd3f734f248d46f.tar"
 
     dcc = DCCDocker()
-    containerId = dcc.startDocker(join(inputdir,uuid))
+    containerId = dcc.startDocker(join(inputdir, uuid))
     if containerId is None:
         raise Exception("Unable to initialize Docker")
     ctr = 0
@@ -197,4 +195,4 @@ if __name__ == '__main__':
         print("There was an error while anonomizing the dataset.")
 
     # Get the resulting mnc file back to the original directory
-    dcc.finalizeJob(containerId, inputdir, uuid,1)
+    dcc.finalizeJob(containerId, inputdir, uuid, 1)

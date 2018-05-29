@@ -25,6 +25,11 @@ Notes:
 
     Macholib version=1.7 required to prevent endless recursions
     Specify matplotlib backends with '-'
+
+TODO: wxPython - remove Scrollbars from ListCtls
+TODO: Find mac with hypervisor CPU - required for Docker
+>sysctl kern.hv_support
+Should return 1 for yes, 0 for no
 '''
 from os import getcwd
 from os.path import join
@@ -57,8 +62,8 @@ OPTIONS = {'argv_emulation': False,
            #'use_pythonpath': True,
            'plist': plist,
            'iconfile': join('dicom2cloud','gui','favicon.ico.icns'),
-           'packages': ['sqlite3','wx','dicom2cloud','numpy'],
-           'includes':['six','appdirs','packaging','packaging.version','packaging.specifiers','packaging.requirements','os','numbers','future_builtins'],
+           'packages': ['sqlite3','wx','dicom2cloud','numpy','google'],
+           'includes':['six','appdirs','packaging','packaging.version','packaging.specifiers','packaging.requirements','os','numbers','future_builtins','html.parser','google'],
            'bdist_base': join(PARENTDIR, 'build'),
            'dist_dir': join(PARENTDIR, 'dist'),
            }
@@ -68,5 +73,5 @@ setup(
     app=APP,
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
-    setup_requires=['py2app','pyobjc-framework-Cocoa','numpy'],
+    setup_requires=['py2app','pyobjc-framework-Cocoa','numpy','google'],
 )

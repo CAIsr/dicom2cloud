@@ -16,8 +16,8 @@ import pydicom
 import wx
 from pydicom.errors import InvalidDicomError
 
-from config.dbquery import DBI
-from controller_utils import generateuid
+from dicom2cloud.config.dbquery import DBI
+from dicom2cloud.controller_utils import generateuid
 from dicom2cloud.processmodules.uploadScripts import get_class
 
 # Required for dist
@@ -157,7 +157,7 @@ class ProcessThread(threading.Thread):
         if self.db.conn is not None:
             # Dynamic process module
             pref = self.db.getProcessField('ref', processname)
-            self.outputasfile = self.db.getProcessField('outputfile', processname) #file=1 or folder=0
+            self.outputasfile = self.db.getProcessField('outputfile', processname)  # file=1 or folder=0
             self.module_name = self.db.getProcessModule(pref)
             self.class_name = self.db.getProcessClass(pref)
             # Instantiate module
@@ -166,8 +166,9 @@ class ProcessThread(threading.Thread):
             # Docker Class
             self.dcc = class_(self.processname)
             # Record configs to log
-            if hasattr(self.dcc,'CONTAINER_NAME'):
-                msg = "Running Container: %s [input=%s output=%s]" % (self.dcc.CONTAINER_NAME, self.dcc.INPUT_TARGET, join(self.dcc.OUTPUT_TARGET, self.dcc.OUTPUT))
+            if hasattr(self.dcc, 'CONTAINER_NAME'):
+                msg = "Running Container: %s [input=%s output=%s]" % (
+                self.dcc.CONTAINER_NAME, self.dcc.INPUT_TARGET, join(self.dcc.OUTPUT_TARGET, self.dcc.OUTPUT))
                 print(msg)
                 logging.info(msg)
         else:
@@ -193,7 +194,7 @@ class ProcessThread(threading.Thread):
                 time.sleep(1)
                 wx.PostEvent(self.wxObject, ResultEvent((self.row, ctr, self.uuid, self.processname, 'Converting')))
                 ctr += 1
-                #restart for long running
+                # restart for long running
                 if ctr == 100:
                     ctr = 1
 
@@ -202,10 +203,10 @@ class ProcessThread(threading.Thread):
                 raise Exception("ERROR: Docker unable to anonymize the dataset")
 
             # Get the resulting mnc file back to the original directory
-            outputfile = self.dcc.finalizeJob(containerId, self.inputdir, self.uuid,self.outputasfile)
+            outputfile = self.dcc.finalizeJob(containerId, self.inputdir, self.uuid, self.outputasfile)
             print('Output:', outputfile)
             if self.server.lower() != 'none':
-                msg =self.uploadCloud(outputfile)
+                msg = self.uploadCloud(outputfile)
             else:
                 msg = 'Done: %s' % outputfile
 
@@ -236,7 +237,7 @@ class ProcessThread(threading.Thread):
             uploader.upload(mncfile, self.processname)
             msg = 'Uploading to server[%s]: %s' % (self.server, mncfile)
         else:
-            msg ='No Uploader class available'
+            msg = 'No Uploader class available'
         return msg
 
 
@@ -287,7 +288,8 @@ class Controller():
                 msg = "Running Thread: %s" % processname
                 print(msg)
                 # Load to database for remote monitoring
-                self.db.setSessionProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(), inputdir)
+                self.db.setSessionProcess(uuid, self.db.getProcessId(processname), server, 1, datetime.datetime.now(),
+                                          inputdir)
             else:
                 msg = "No files to process"
                 logger.error(msg)
@@ -336,11 +338,10 @@ class Controller():
                     # Still in progress
                     self.db.setSeriesProcessInprogress(seriesid)
             else:
-                #assume done
+                # assume done
                 msg = 'Series: %s \n\tSTATUS: Complete\n' % seriesid
                 print(msg)
                 self.db.setSessionProcessFinished(seriesid)
-
 
     def parseDicom(self, wxObject, filelist):
         '''

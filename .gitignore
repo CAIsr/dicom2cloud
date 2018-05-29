@@ -12,3 +12,5 @@ clinic2cloud.egg-info/*
 build/*
 dummydatabase.txt
 wxFormBuilder_win32
+.eggs/
+*.rst

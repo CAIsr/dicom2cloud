@@ -7,7 +7,7 @@ from dicom2cloud.config.dbquery import DBI
 
 
 class DCCDocker():
-    def __init__(self,process=None):
+    def __init__(self, process=None):
         self.client = docker.from_env()
         db = DBI()
         db.connect()
@@ -30,9 +30,9 @@ class DCCDocker():
     def getExitStatus(self, container):
         return 0
 
-    def finalizeJob(self, container, outputDir, uuid,outputasfile):
+    def finalizeJob(self, container, outputDir, uuid, outputasfile):
         print('Test docker: finalized')
-        return join(outputDir,uuid)
+        return join(outputDir, uuid)
 
 
 ############################################################################################

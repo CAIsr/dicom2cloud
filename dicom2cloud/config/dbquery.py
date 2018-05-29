@@ -23,17 +23,6 @@ class DBI():
         else:
             dbname = 'd2c.db'
         self.dbfile = self.getConfigdb(dbname)
-        # cpath1 = join('config',dbname)
-        # cpath2 = join('..',cpath1)
-        # if access(dbname,R_OK):
-        #     self.dbfile = abspath(dbname)
-        # elif access(cpath1, R_OK):
-        #     self.dbfile = abspath(cpath1)
-        # elif access(cpath2, R_OK):
-        #     self.dbfile = abspath(cpath2)
-        # else:
-        #     raise IOError("Unable to locate Config db")
-
         self.c = None
 
     def getConfigdb(self, dbname):
